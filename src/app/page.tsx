@@ -29,7 +29,7 @@ export default async function Home() {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/outdoor" className="rounded-full bg-white px-5 py-3 font-bold text-black">밖에서 놀기</Link>
             <Link href="/home" className="rounded-full border border-white/30 px-5 py-3 font-bold">집에서 놀기</Link>
-            <Link href="/plan" className="rounded-full border border-white/30 px-5 py-3 font-bold">알아서 추천</Link>
+            <Link href="/recommend" className="rounded-full border border-white/30 px-5 py-3 font-bold">알아서 추천</Link>
           </div>
         </div>
       </section>

@@ -6,6 +6,11 @@
 - Next.js App Router + TypeScript + Tailwind CSS
 - 메인 / 밖에서 / 집에서 / 일정만들기 / MY
 - Supabase `activities` 서버 조회
+- Activity 공통 모델
+- 추천 점수 엔진
+- 추천 이유 생성
+- 고정시간 우선 일정 생성
+- 예산 범위 일정 필터
 - Supabase 초기 SQL (`supabase/schema.sql`)
 - Vercel 환경변수 연결 전에도 첫 배포 가능
 
