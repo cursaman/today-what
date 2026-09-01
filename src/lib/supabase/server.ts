@@ -1,12 +1,28 @@
-import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-export function getSupabaseServerClient() {
+export async function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   if (!url || !key) return null;
 
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
+  const cookieStore = await cookies();
+
+  return createServerClient(url, key, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
+        } catch {
+          // Server Component에서 cookie 쓰기가 허용되지 않는 경우 무시합니다.
+        }
+      },
+    },
   });
 }

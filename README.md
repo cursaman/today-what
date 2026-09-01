@@ -1,39 +1,46 @@
-# 오늘 뭐하지? (today-what)
+# 오늘 뭐하지? — Day 12
 
-날씨·시간·지역·취향을 기준으로 외부/내부 활동을 추천하고 하루 일정을 만드는 Next.js 프로젝트입니다.
+Next.js + Supabase + Vercel 기반 생활 일정 추천 MVP입니다.
 
-## 현재 포함
-- Next.js App Router + TypeScript + Tailwind CSS
-- 메인 / 밖에서 / 집에서 / 일정만들기 / MY
-- Supabase `activities` 서버 조회
-- Activity 공통 모델
-- 추천 점수 엔진
-- 추천 이유 생성
+## Day 12 포함 기능
+- 추천 점수 기반 Activity 정렬
 - 고정시간 우선 일정 생성
-- 예산 범위 일정 필터
-- Supabase 초기 SQL (`supabase/schema.sql`)
-- Vercel 환경변수 연결 전에도 첫 배포 가능
-
-## Vercel 중심 시작 순서
-1. 이 폴더를 GitHub 저장소에 업로드합니다.
-2. Vercel에서 GitHub 저장소를 Import합니다.
-3. 우선 환경변수 없이 첫 배포하여 기본 화면을 확인합니다.
-4. Supabase 프로젝트를 생성합니다.
-5. Supabase SQL Editor에서 `supabase/schema.sql`을 실행합니다.
-6. Vercel Project > Settings > Environment Variables에 아래 값을 등록합니다.
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-7. Vercel에서 Redeploy합니다.
-8. 메인 화면의 '추천 활동'에 Supabase 샘플 데이터가 표시되면 연결 성공입니다.
+- A/B/C 3가지 일정 옵션
+- Supabase 이메일 회원가입/로그인
+- 선택 일정 `plans` / `plan_items` 저장
+- MY에서 사용자 본인 일정 조회
+- RLS 사용자별 데이터 보호
 
 ## 환경변수
-`.env.example` 참고. 실제 키는 GitHub에 커밋하지 마세요.
+Vercel Project > Settings > Environment Variables에 등록합니다.
 
-## 다음 개발 순서
-- Supabase Auth
-- activities CRUD
-- favorites CRUD
-- plans / plan_items CRUD
-- 날씨 API
-- 관광 / 영화 / OTT / 스포츠 / 요리 / 도서 API
-- 추천 일정 엔진
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_KEY
+```
+
+## Supabase DB
+`supabase/day12.sql` 전체를 Supabase SQL Editor에서 한 번 실행하세요.
+
+## 실행
+```bash
+npm install
+npm run dev
+```
+
+## 주요 화면
+- `/` 메인
+- `/recommend` 추천 결과
+- `/plan` A/B/C 일정 및 저장
+- `/signup` 회원가입
+- `/login` 로그인
+- `/my` 저장한 일정
+
+## 배포
+GitHub와 Vercel이 연결되어 있다면 아래 명령 후 자동 배포됩니다.
+
+```bash
+git add .
+git commit -m "Day 12 Supabase auth and plan save"
+git push
+```

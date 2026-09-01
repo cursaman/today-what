@@ -13,3 +13,13 @@ export interface DailyPlan {
   items: PlanItem[];
   totalCost: number;
 }
+
+export type PlanStyle = "outdoor" | "balanced" | "relaxed";
+
+export interface PlanOption {
+  id: PlanStyle;
+  title: string;
+  description: string;
+  style: PlanStyle;
+  plan: DailyPlan;
+}

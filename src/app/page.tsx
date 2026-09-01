@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 type Activity = {
   id: number;
@@ -11,7 +11,7 @@ type Activity = {
 };
 
 async function getActivities(): Promise<Activity[]> {
-  const supabase = getSupabaseServerClient();
+  const supabase = await createClient();
   if (!supabase) return [];
   const { data } = await supabase.from("activities").select("id,title,description,activity_type,category,duration_minutes").eq("is_active", true).limit(6);
   return (data ?? []) as Activity[];
