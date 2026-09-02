@@ -56,9 +56,17 @@ export function createDailyPlan(
   const fixedCost = fixedItems.reduce((sum, item) => sum + item.activity.cost, 0);
   const remainingBudget = Math.max(0, budget - fixedCost);
   const freeSlots = getFreeTimeSlots(startTime, endTime, fixedActivities);
-  const flexibleCandidates = activities.filter(
-    (activity) => !activity.fixedTime && activity.cost <= remainingBudget
-  );
+  const flexibleCandidates = activities
+    .filter((activity) => !activity.fixedTime && activity.cost <= remainingBudget)
+    .sort((a, b) => {
+      const aManual = a.metadata?.manuallySelected === true;
+      const bManual = b.metadata?.manuallySelected === true;
+
+      // 직접 선택한 활동은 자동 추천 활동보다 먼저 빈 시간에 배치합니다.
+      // 같은 직접 선택 후보끼리는 기존 추천 순서를 유지합니다.
+      if (aManual !== bManual) return aManual ? -1 : 1;
+      return 0;
+    });
   const flexibleItems = fillTimeSlots(freeSlots, flexibleCandidates);
 
   const items = [...fixedItems, ...flexibleItems]

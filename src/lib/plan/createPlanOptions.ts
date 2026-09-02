@@ -37,7 +37,16 @@ export function createPlanOptions(
         ...activity,
         score: activity.score + getStyleScore(activity, option.style),
       }))
-      .sort((a, b) => b.score - a.score);
+      .sort((a, b) => {
+        const aManual = a.metadata?.manuallySelected === true;
+        const bManual = b.metadata?.manuallySelected === true;
+
+        // 사용자가 직접 고른 후보는 A/B/C 스타일 점수보다 항상 우선합니다.
+        // 따라서 /home에서 직접 고른 OTT 영화가 자동 추천 관광지에 밀려 빠지지 않습니다.
+        if (aManual !== bManual) return aManual ? -1 : 1;
+
+        return b.score - a.score;
+      });
 
     return {
       id: option.style,
