@@ -16,6 +16,7 @@ import { cookies } from "next/headers";
 import type { Activity } from "@/types/activity";
 import type { RecommendationCondition } from "@/types/recommendation";
 import type { UserTransportMode } from "@/types/preferences";
+import { decodePlanDraft } from "@/lib/plan/draftCodec";
 
 function currentKoreanTime() {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -24,22 +25,6 @@ function currentKoreanTime() {
     minute: "2-digit",
     hour12: false,
   }).format(new Date()).replace("24:", "00:");
-}
-
-function parsePlanDraft(raw?: string): Activity[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(decodeURIComponent(raw));
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((item): item is Activity => Boolean(item && typeof item.id === "string" && typeof item.title === "string"))
-      .map((item) => ({
-        ...item,
-        metadata: { ...(item.metadata ?? {}), manuallySelected: true },
-      }));
-  } catch {
-    return [];
-  }
 }
 
 export default async function PlanPage() {
@@ -57,7 +42,7 @@ export default async function PlanPage() {
     }
   }
 
-  const planDraft = parsePlanDraft(cookieStore.get(getPlanDraftCookieName(userId))?.value);
+  const planDraft = decodePlanDraft(cookieStore.get(getPlanDraftCookieName(userId))?.value);
 
   const region = typeof preferences?.default_region === "string" ? preferences.default_region : "부산";
   const budget = typeof preferences?.budget_level === "number" ? preferences.budget_level : 50000;
@@ -65,11 +50,13 @@ export default async function PlanPage() {
   const favoriteTeams = Array.isArray(preferences?.favorite_teams) ? preferences.favorite_teams.filter((v): v is string => typeof v === "string") : ["롯데"];
   const startTime = currentKoreanTime();
   const startLocation = getRegionLocation(region);
-  const weather = await getWeather(region, startLocation);
-  const tourItems = await getTours(region);
-  const liveTours = tourItems.map(tourToActivity);
   const ottServices = Array.isArray(preferences?.ott_services) ? preferences.ott_services.filter((v): v is string => typeof v === "string") : [];
-  const liveOtt = await getOttActivities(ottServices);
+  const [weather, tourItems, liveOtt] = await Promise.all([
+    getWeather(region, startLocation),
+    getTours(region),
+    getOttActivities(ottServices),
+  ]);
+  const liveTours = tourItems.map(tourToActivity);
 
   const transportMode: UserTransportMode =
     preferences?.transport_mode === "walk" || preferences?.transport_mode === "transit"

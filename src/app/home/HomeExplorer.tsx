@@ -57,8 +57,6 @@ export default function HomeExplorer({ initialServices }: { initialServices: str
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setMessage("");
 
     fetch(`/api/ott?services=${encodeURIComponent(query)}`, {
       cache: "no-store",
@@ -79,6 +77,8 @@ export default function HomeExplorer({ initialServices }: { initialServices: str
   }, [query]);
 
   function toggle(service: Service) {
+    setLoading(true);
+    setMessage("");
     setSelected((current) => {
       if (current.includes(service)) {
         const next = current.filter((value) => value !== service);

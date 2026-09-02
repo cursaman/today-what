@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Activity } from "@/types/activity";
 import { createClient } from "@/lib/supabase/server";
+import { decodePlanDraft, encodePlanDraft } from "@/lib/plan/draftCodec";
 import {
   GUEST_PLAN_DRAFT_COOKIE_NAME,
   LEGACY_PLAN_DRAFT_COOKIE_NAME,
@@ -26,16 +27,6 @@ type DraftActivity = Pick<
   | "metadata"
 >;
 
-function parseDraft(raw?: string): DraftActivity[] {
-  if (!raw) return [];
-  try {
-    const value = JSON.parse(decodeURIComponent(raw));
-    return Array.isArray(value) ? value : [];
-  } catch {
-    return [];
-  }
-}
-
 async function currentCookieName() {
   const supabase = await createClient();
   if (!supabase) return GUEST_PLAN_DRAFT_COOKIE_NAME;
@@ -53,29 +44,37 @@ function cookieOptions(maxAge = 60 * 60 * 24) {
   };
 }
 
-function writeDraft(response: NextResponse, cookieName: string, items: DraftActivity[]) {
-  response.cookies.set(cookieName, encodeURIComponent(JSON.stringify(items.slice(-MAX_ITEMS))), cookieOptions());
+function writeDraft(response: NextResponse, cookieName: string, items: Activity[]) {
+  const result = encodePlanDraft(items);
+  response.cookies.set(cookieName, result.encoded, cookieOptions());
   // 구버전에서 사용하던 브라우저 공용 쿠키는 더 이상 사용하지 않습니다.
   response.cookies.set(LEGACY_PLAN_DRAFT_COOKIE_NAME, "", cookieOptions(0));
 }
 
 export async function GET(request: NextRequest) {
   const cookieName = await currentCookieName();
-  const items = parseDraft(request.cookies.get(cookieName)?.value);
+  const items = decodePlanDraft(request.cookies.get(cookieName)?.value);
   return NextResponse.json({ success: true, count: items.length, items, maxItems: MAX_ITEMS });
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json()) as { activity?: DraftActivity };
+  let body: { activity?: DraftActivity };
+  try { body = (await request.json()) as { activity?: DraftActivity }; }
+  catch { return NextResponse.json({ success: false, message: "올바른 JSON 요청이 아닙니다." }, { status: 400 }); }
   const activity = body.activity;
   if (!activity?.id || !activity.title) {
     return NextResponse.json({ success: false, message: "추가할 활동 정보가 없습니다." }, { status: 400 });
   }
 
   const cookieName = await currentCookieName();
-  const existing = parseDraft(request.cookies.get(cookieName)?.value);
+  if (!Number.isFinite(activity.durationMinutes) || activity.durationMinutes <= 0 || activity.durationMinutes > 1440 || !Number.isFinite(activity.cost) || activity.cost < 0) {
+    return NextResponse.json({ success: false, message: "활동 시간 또는 비용이 올바르지 않습니다." }, { status: 400 });
+  }
+  const existing = decodePlanDraft(request.cookies.get(cookieName)?.value);
   const withoutDuplicate = existing.filter((item) => item.id !== activity.id);
-  const items = [...withoutDuplicate, activity].slice(-MAX_ITEMS);
+  const normalized = { ...activity, metadata: { ...(activity.metadata ?? {}), manuallySelected: true } } as Activity;
+  const requestedItems = [...withoutDuplicate, normalized].slice(-MAX_ITEMS);
+  const { items } = encodePlanDraft(requestedItems);
   const response = NextResponse.json({
     success: true,
     count: items.length,
@@ -100,7 +99,7 @@ export async function DELETE(request: NextRequest) {
     return response;
   }
 
-  const existing = parseDraft(request.cookies.get(cookieName)?.value);
+  const existing = decodePlanDraft(request.cookies.get(cookieName)?.value);
   const items = id ? existing.filter((item) => item.id !== id) : [];
   const response = NextResponse.json({ success: true, count: items.length, items, maxItems: MAX_ITEMS });
   writeDraft(response, cookieName, items);

@@ -54,7 +54,7 @@ export async function replacePlanItem(planId: number, itemId: number, activityId
 
   if (!target || target.fixed_time) return;
 
-  await supabase
+  const { error: replaceError } = await supabase
     .from("plan_items")
     .update({
       activity_id: replacement.id,
@@ -68,6 +68,7 @@ export async function replacePlanItem(planId: number, itemId: number, activityId
     })
     .eq("id", itemId)
     .eq("plan_id", planId);
+  if (replaceError) throw new Error(`활동 교체 실패: ${replaceError.message}`);
 
   const { data: items } = await supabase
     .from("plan_items")
@@ -81,6 +82,7 @@ export async function replacePlanItem(planId: number, itemId: number, activityId
   let totalDistanceKm = 0;
   let totalTravelMinutes = 0;
 
+  const recalculatedItems: Array<{ id: number; distanceKm: number; travelMinutes: number }> = [];
   for (const item of items ?? []) {
     totalCost += Number(item.cost ?? 0);
     const location = typeof item.metadata?.location === "string" ? item.metadata.location : "";
@@ -98,14 +100,20 @@ export async function replacePlanItem(planId: number, itemId: number, activityId
     totalDistanceKm += distanceKm;
     totalTravelMinutes += travelMinutes;
 
-    await supabase
-      .from("plan_items")
-      .update({ distance_km: Number(distanceKm.toFixed(2)), travel_minutes: travelMinutes, transport_mode: "estimate" })
-      .eq("id", item.id)
-      .eq("plan_id", planId);
+    recalculatedItems.push({ id: item.id, distanceKm: Number(distanceKm.toFixed(2)), travelMinutes });
   }
 
-  await supabase
+  if (recalculatedItems.length) {
+    const results = await Promise.all(recalculatedItems.map((item) => supabase
+      .from("plan_items")
+      .update({ distance_km: item.distanceKm, travel_minutes: item.travelMinutes, transport_mode: "estimate" })
+      .eq("id", item.id)
+      .eq("plan_id", planId)));
+    const itemsError = results.find((result) => result.error)?.error;
+    if (itemsError) throw new Error(`이동 정보 갱신 실패: ${itemsError.message}`);
+  }
+
+  const { error: planError } = await supabase
     .from("plans")
     .update({
       total_cost: totalCost,
@@ -114,6 +122,7 @@ export async function replacePlanItem(planId: number, itemId: number, activityId
     })
     .eq("id", planId)
     .eq("user_id", user.id);
+  if (planError) throw new Error(`일정 합계 갱신 실패: ${planError.message}`);
 
   revalidatePath(`/my/plans/${planId}`);
   revalidatePath("/my");

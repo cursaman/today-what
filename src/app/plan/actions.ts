@@ -35,6 +35,16 @@ export async function savePlan(input: SavePlanInput) {
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) return { success: false, message: "일정을 저장하려면 먼저 로그인해주세요." };
 
+  const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+  if (!input || input.title.trim().length < 1 || input.title.length > 80 || input.region.length > 50 ||
+      !["outdoor", "balanced", "relaxed"].includes(input.style) || !timePattern.test(input.startTime) || !timePattern.test(input.endTime) ||
+      !Number.isFinite(input.totalCost) || input.totalCost < 0 || input.items.length > 30 ||
+      input.items.some((item) => !item.activityId || item.activityId.length > 200 || !item.title || item.title.length > 200 ||
+        !timePattern.test(item.startTime) || !timePattern.test(item.endTime) || !Number.isFinite(item.cost) || item.cost < 0 ||
+        JSON.stringify(item.metadata ?? {}).length > 10_000)) {
+    return { success: false, message: "저장할 일정 데이터가 올바르지 않습니다." };
+  }
+
   const { data: plan, error: planError } = await supabase
     .from("plans")
     .insert({
@@ -75,8 +85,8 @@ export async function savePlan(input: SavePlanInput) {
     );
 
     if (itemError) {
-      await supabase.from("plans").delete().eq("id", plan.id);
-      return { success: false, message: itemError.message };
+      const { error: rollbackError } = await supabase.from("plans").delete().eq("id", plan.id).eq("user_id", user.id);
+      return { success: false, message: rollbackError ? `${itemError.message} (정리 실패: ${rollbackError.message})` : itemError.message };
     }
   }
 

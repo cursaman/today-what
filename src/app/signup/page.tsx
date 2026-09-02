@@ -26,7 +26,7 @@ export default function SignupPage() {
       // 값이 없으면 현재 접속 중인 도메인(Vercel/localhost)을 자동으로 사용합니다.
       const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
       const siteUrl = configuredSiteUrl || window.location.origin;
-      const emailRedirectTo = `${siteUrl}/my/preferences`;
+      const emailRedirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent("/my/preferences")}`;
 
       // 같은 브라우저에서 이전 사용자가 남긴 일정 후보가 새 계정에 보이지 않도록
       // 회원가입 시작 시 게스트/구버전 후보 쿠키를 정리합니다.

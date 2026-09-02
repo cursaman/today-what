@@ -44,15 +44,12 @@ function toMapItems(items: PlanItem[]): MapPlanItem[] {
 
 export default function DailyPlanMap({ items, startLocation }: { items: PlanItem[]; startLocation: UserLocation }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [status, setStatus] = useState<"loading" | "ready" | "missing-key" | "error">("loading");
+  const appKey = process.env.NEXT_PUBLIC_KAKAO_MAP_JS_KEY;
+  const [status, setStatus] = useState<"loading" | "ready" | "missing-key" | "error">(() => appKey ? "loading" : "missing-key");
   const mapItems = useMemo(() => toMapItems(items), [items]);
 
   useEffect(() => {
-    const appKey = process.env.NEXT_PUBLIC_KAKAO_MAP_JS_KEY;
-    if (!appKey) {
-      setStatus("missing-key");
-      return;
-    }
+    if (!appKey) return;
     if (!containerRef.current) return;
 
     const render = () => {
@@ -117,7 +114,7 @@ export default function DailyPlanMap({ items, startLocation }: { items: PlanItem
     script.onload = () => window.kakao?.maps.load(render);
     script.onerror = () => setStatus("error");
     document.head.appendChild(script);
-  }, [mapItems, startLocation.latitude, startLocation.longitude]);
+  }, [appKey, mapItems, startLocation.latitude, startLocation.longitude]);
 
   if (status === "missing-key") {
     return <div className="rounded-3xl border border-dashed p-6 text-sm text-neutral-500">지도 사용 시 Vercel에 NEXT_PUBLIC_KAKAO_MAP_JS_KEY를 등록하세요.</div>;

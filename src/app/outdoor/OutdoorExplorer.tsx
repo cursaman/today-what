@@ -58,8 +58,6 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setError("");
 
     void fetch(`/api/tours?region=${encodeURIComponent(region)}&category=${encodeURIComponent(category)}`, {
       signal: controller.signal,
@@ -137,7 +135,7 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
             <span className="mb-2 block text-xs font-black text-neutral-500">지역 선택</span>
             <select
               value={region}
-              onChange={(event) => setRegion(event.target.value)}
+              onChange={(event) => { setLoading(true); setError(""); setRegion(event.target.value); }}
               className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 font-bold outline-none focus:border-neutral-500"
             >
               {REGIONS.map((item) => <option key={item}>{item}</option>)}
@@ -151,7 +149,7 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setCategory(item.id)}
+                  onClick={() => { setLoading(true); setError(""); setCategory(item.id); }}
                   className={`rounded-full px-4 py-2 text-sm font-bold ${category === item.id ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600"}`}
                 >
                   {item.label}
