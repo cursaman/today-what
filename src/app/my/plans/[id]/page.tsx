@@ -18,7 +18,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ id:
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: plan, error } = await supabase.from("plans").select(`id,title,style,region,plan_date,total_cost,total_distance_km,total_travel_minutes,start_time,end_time,plan_items(id,activity_id,title,activity_type,start_time,end_time,fixed_time,cost,sort_order,latitude,longitude,travel_minutes,distance_km,transport_mode,metadata)`).eq("id", planId).single();
+  const { data: plan, error } = await supabase.from("plans").select(`id,title,style,region,plan_date,total_cost,total_distance_km,total_travel_minutes,start_time,end_time,plan_items(id,activity_id,title,activity_type,start_time,end_time,fixed_time,cost,sort_order,latitude,longitude,travel_minutes,distance_km,transport_mode,metadata)`).eq("id", planId).eq("user_id", user.id).maybeSingle();
   if (error || !plan) notFound();
 
   const dbItems = [...(plan.plan_items ?? [])].sort((a, b) => a.sort_order - b.sort_order);
@@ -48,7 +48,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ id:
   return (
     <main className="mx-auto max-w-5xl px-4 py-12 pb-24">
       <Link href="/my" className="text-sm font-bold text-neutral-500">← MY 일정</Link>
-      <div className="mt-5 flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-bold text-neutral-500">{plan.region} · {plan.plan_date}</p><h1 className="mt-1 text-4xl font-black">{plan.title}</h1></div><div className="text-right text-sm"><p>{Number(plan.total_distance_km ?? 0).toFixed(1)}km · 이동 {Number(plan.total_travel_minutes ?? 0)}분</p><strong className="text-xl">{Number(plan.total_cost ?? 0).toLocaleString()}원</strong></div></div>
+      <div className="mt-5 flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-bold text-neutral-500">{plan.region} · {plan.plan_date}</p><div className="mt-2 inline-flex rounded-full bg-neutral-900 px-3 py-1 text-xs font-black text-white">{plan.style === "outdoor" ? "A · 밖에서 즐기기" : plan.style === "relaxed" ? "C · 편하게 보내기" : "B · 적당히 즐기기"}</div><h1 className="mt-2 text-4xl font-black">{plan.title}</h1></div><div className="text-right text-sm"><p>{Number(plan.total_distance_km ?? 0).toFixed(1)}km · 이동 {Number(plan.total_travel_minutes ?? 0)}분</p><strong className="text-xl">{Number(plan.total_cost ?? 0).toLocaleString()}원</strong></div></div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.1fr]">
         <div className="space-y-3">{items.map((item, index) => <div key={`${item.activity.id}-${index}`} className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-xs font-bold text-neutral-400">↓ 이동 {item.travelFromPreviousMinutes ?? 0}분 · {(item.distanceFromPreviousKm ?? 0).toFixed(1)}km</p><strong>{item.startTime} ~ {item.endTime}</strong><p className="mt-1 font-black">{item.activity.title}</p>{!item.fixedTime && dbItems[index] ? <div className="mt-3 flex flex-wrap gap-2">{sampleActivities.filter((candidate) => !candidate.fixedTime && candidate.id !== item.activity.id).slice(0, 3).map((candidate) => <form key={candidate.id} action={replacePlanItem.bind(null, planId, Number(dbItems[index].id), candidate.id)}><button className="rounded-full border px-3 py-1.5 text-xs font-bold">{candidate.title}로 교체</button></form>)}</div> : null}</div>)}</div>

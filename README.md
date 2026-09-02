@@ -105,3 +105,17 @@ TOUR_API_KEY=공공데이터포털_일반인증키
 - Supported UI filters: Netflix, TVING, Disney+, Wavve, Watcha.
 - Streaming availability is sourced through TMDB's JustWatch partnership; keep the JustWatch attribution visible.
 - Movies added from `/home` use the same plan-draft cookie as `/outdoor` and are prioritized on `/plan`.
+
+## MY 일정 관리 점검
+
+- `/my`: 최신순 일정 목록, 날짜 필터, A/B/C 스타일, 개별/다중 선택 삭제
+- `/my/plans/[id]`: 상세보기, 제목 수정, 활동 교체, 비용/거리/이동시간 재계산, 삭제
+- RLS 재점검: Supabase SQL Editor에서 `supabase/day-my-rls-check.sql` 실행
+
+테스트 순서:
+1. 서로 다른 날짜/스타일의 일정 2개 이상 저장
+2. `/my`에서 최신순/날짜 필터/스타일 배지 확인
+3. 체크박스로 여러 일정 선택 후 선택 삭제
+4. 상세보기에서 제목 수정
+5. 유동 활동 교체 후 비용/거리/이동시간 합계 변경 확인
+6. 다른 계정으로 로그인해 첫 계정 일정이 노출되지 않는지 확인
