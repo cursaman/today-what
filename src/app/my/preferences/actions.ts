@@ -28,6 +28,8 @@ export async function savePreferences(input: PreferenceInput) {
   };
   const {error}=await supabase.from("user_preferences").upsert(payload,{onConflict:"user_id"});
   if(error) return {success:false,message:error.message};
-  ["/my/preferences","/outdoor","/home","/plan"].forEach(revalidatePath);
+  for (const path of ["/my/preferences", "/outdoor", "/home", "/plan"]) {
+    revalidatePath(path);
+  }
   return {success:true,message:"저장했습니다. 다음 추천부터 내 취향이 반영됩니다."};
 }

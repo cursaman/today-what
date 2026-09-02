@@ -12,6 +12,8 @@ import { tourToActivity } from "@/lib/api/tour/tourToActivity";
 import { getOttActivities } from "@/lib/api/tmdb/getOttActivities";
 import { cookies } from "next/headers";
 import type { Activity } from "@/types/activity";
+import type { RecommendationCondition } from "@/types/recommendation";
+import type { UserTransportMode } from "@/types/preferences";
 
 function currentKoreanTime() {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -64,7 +66,12 @@ export default async function PlanPage() {
   const ottServices = Array.isArray(preferences?.ott_services) ? preferences.ott_services.filter((v): v is string => typeof v === "string") : [];
   const liveOtt = await getOttActivities(ottServices);
 
-  const condition = {
+  const transportMode: UserTransportMode =
+    preferences?.transport_mode === "walk" || preferences?.transport_mode === "transit"
+      ? preferences.transport_mode
+      : "car";
+
+  const condition: RecommendationCondition = {
     region,
     startTime,
     endTime: "23:00",
@@ -73,8 +80,11 @@ export default async function PlanPage() {
     companion: typeof preferences?.companion_type === "string" ? preferences.companion_type : "alone",
     interests,
     favoriteTeams,
-    preferredActivityMode: (preferences?.activity_mode === "indoor" || preferences?.activity_mode === "outdoor") ? preferences.activity_mode : "balanced",
-    transportMode: (preferences?.transport_mode === "walk" || preferences?.transport_mode === "transit") ? preferences.transport_mode : "car",
+    preferredActivityMode:
+      preferences?.activity_mode === "indoor" || preferences?.activity_mode === "outdoor"
+        ? preferences.activity_mode
+        : "balanced",
+    transportMode,
     ottServices,
   };
 
