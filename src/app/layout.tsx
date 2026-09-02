@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 const nav = [
-  ["오늘추천", "/"],
+  ["오늘추천", "/recommend"],
   ["밖에서", "/outdoor"],
   ["집에서", "/home"],
   ["일정만들기", "/plan"],
@@ -46,10 +46,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         </header>
         {children}
         <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t bg-white px-2 py-2 text-center text-xs md:hidden">
-          <Link href="/">오늘</Link>
-          <Link href="/outdoor">밖에서</Link>
+          <Link href="/">홈</Link>
+          <Link href="/recommend">추천</Link>
           <Link href="/plan" className="font-black">＋일정</Link>
-          <Link href="/home">집에서</Link>
+          <Link href="/favorites">찜</Link>
           <Link href={user ? "/my" : "/login"}>{user ? "MY" : "로그인"}</Link>
         </nav>
       </body>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Activity } from "@/types/activity";
+import type { FavoriteItem } from "@/types/favorite";
 
 const SERVICES = ["Netflix", "TVING", "Disney+", "Wavve", "Watcha"] as const;
 
@@ -41,16 +42,21 @@ export default function HomeExplorer({ initialServices }: { initialServices: str
   const [configured, setConfigured] = useState(true);
   const [draftIds, setDraftIds] = useState<Set<string>>(new Set());
   const [draftCount, setDraftCount] = useState(0);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   const query = useMemo(() => selected.join(","), [selected]);
 
   useEffect(() => {
-    fetch("/api/plan-draft", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data) => {
-        const list = Array.isArray(data.items) ? data.items : [];
+    Promise.all([
+      fetch("/api/plan-draft", { cache: "no-store" }).then((response) => response.json()),
+      fetch("/api/favorites", { cache: "no-store" }).then((response) => response.json()),
+    ])
+      .then(([drafts, favorites]) => {
+        const list = Array.isArray(drafts.items) ? drafts.items : [];
         setDraftIds(new Set(list.map((item: Activity) => item.id)));
-        setDraftCount(Number(data.count ?? list.length));
+        setDraftCount(Number(drafts.count ?? list.length));
+        const favoriteList: FavoriteItem[] = Array.isArray(favorites.items) ? favorites.items : [];
+        setFavoriteIds(new Set(favoriteList.map((item) => `${item.contentType}:${item.contentId}`)));
       })
       .catch(() => undefined);
   }, []);
@@ -119,6 +125,17 @@ export default function HomeExplorer({ initialServices }: { initialServices: str
     }
   }
 
+  async function toggleFavorite(card: OttCard) {
+    const key = `ott:${card.activity.id}`;
+    const added = favoriteIds.has(key);
+    const response = await fetch(added ? `/api/favorites?contentType=ott&contentId=${encodeURIComponent(card.activity.id)}` : "/api/favorites", added ? { method: "DELETE" } : {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ item: { contentType: "ott", contentId: card.activity.id, title: card.activity.title, imageUrl: card.posterUrl ?? undefined, source: card.activity.source, metadata: { providers: card.activity.metadata?.providers ?? [] } } }),
+    });
+    if (!response.ok) return;
+    setFavoriteIds((current) => { const next = new Set(current); added ? next.delete(key) : next.add(key); return next; });
+  }
+
   return (
     <div className="mt-8">
       <section className="rounded-3xl bg-neutral-900 p-5 text-white">
@@ -181,6 +198,7 @@ export default function HomeExplorer({ initialServices }: { initialServices: str
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => {
             const added = draftIds.has(item.activity.id);
+            const favorite = favoriteIds.has(`ott:${item.activity.id}`);
             const serviceNames = [...new Set(item.providers.map((provider) => provider.service))];
             return (
               <article key={item.tmdbId} className="overflow-hidden rounded-3xl bg-white shadow-sm">
@@ -209,7 +227,7 @@ export default function HomeExplorer({ initialServices }: { initialServices: str
                     ))}
                   </div>
 
-                  <div className="mt-5 grid grid-cols-2 gap-2">
+                  <div className="mt-5 grid grid-cols-3 gap-2">
                     {item.watchLink ? (
                       <a href={item.watchLink} target="_blank" rel="noreferrer" className="rounded-2xl border p-3 text-center text-sm font-black">
                         제공처 보기
@@ -217,6 +235,9 @@ export default function HomeExplorer({ initialServices }: { initialServices: str
                     ) : (
                       <div className="rounded-2xl border p-3 text-center text-sm font-black text-neutral-400">한국 제공작</div>
                     )}
+                    <button type="button" onClick={() => void toggleFavorite(item)} aria-pressed={favorite} className={`rounded-2xl border p-3 text-sm font-black ${favorite ? "border-rose-200 bg-rose-50 text-rose-600" : "bg-white"}`}>
+                      {favorite ? "♥ 찜됨" : "♡ 찜"}
+                    </button>
                     <button
                       type="button"
                       onClick={() => void togglePlan(item.activity, added)}

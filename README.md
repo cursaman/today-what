@@ -27,6 +27,7 @@ Supabase SQL Editor에서 순서대로 실행합니다.
 
 1. `supabase/day12.sql`
 2. `supabase/day20.sql`
+3. `supabase/day3-alignment.sql` (통합 찜·관심 스포츠·이용 OTT 및 Day 3 확장 컬럼)
 
 ## 3. Vercel 환경변수
 
@@ -56,6 +57,7 @@ TMDB 토큰이 없으면 기존 샘플 OTT 활동을 유지합니다.
 - `/my` 저장 일정
 - `/my/preferences` 개인 추천 설정
 - `/my/plans/[id]` 일정 상세/수정/교체/삭제/지도
+- `/favorites` 관광·OTT 통합 찜
 - `/login`, `/signup`
 
 ## 5. 현재 Provider 정책

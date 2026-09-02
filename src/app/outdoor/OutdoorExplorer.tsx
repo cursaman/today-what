@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Activity } from "@/types/activity";
+import type { FavoriteItem } from "@/types/favorite";
 
 type OutdoorActivity = Activity & {
   score: number;
@@ -43,15 +44,17 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
   const [error, setError] = useState("");
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [draftCount, setDraftCount] = useState(0);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    void fetch("/api/plan-draft")
-      .then((res) => res.json())
-      .then((value) => {
-        if (Array.isArray(value.items)) {
-          setAddedIds(new Set(value.items.map((item: Activity) => item.id)));
-          setDraftCount(value.items.length);
+    void Promise.all([fetch("/api/plan-draft").then((res) => res.json()), fetch("/api/favorites").then((res) => res.json())])
+      .then(([drafts, favorites]) => {
+        if (Array.isArray(drafts.items)) {
+          setAddedIds(new Set(drafts.items.map((item: Activity) => item.id)));
+          setDraftCount(drafts.items.length);
         }
+        const favoriteList: FavoriteItem[] = Array.isArray(favorites.items) ? favorites.items : [];
+        setFavoriteIds(new Set(favoriteList.map((item) => `${item.contentType}:${item.contentId}`)));
       })
       .catch(() => undefined);
   }, []);
@@ -113,6 +116,18 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
     const serverItems: Activity[] = Array.isArray(result.items) ? result.items : [];
     setAddedIds(new Set(serverItems.map((item) => item.id)));
     setDraftCount(Number(result.count ?? serverItems.length));
+  }
+
+  async function toggleFavorite(activity: OutdoorActivity) {
+    const key = `tour:${activity.id}`;
+    const added = favoriteIds.has(key);
+    const imageUrl = typeof activity.metadata?.image === "string" ? activity.metadata.image : undefined;
+    const response = await fetch(added ? `/api/favorites?contentType=tour&contentId=${encodeURIComponent(activity.id)}` : "/api/favorites", added ? { method: "DELETE" } : {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ item: { contentType: "tour", contentId: activity.id, title: activity.title, imageUrl, source: activity.source, metadata: { location: activity.location ?? null } } }),
+    });
+    if (!response.ok) return;
+    setFavoriteIds((current) => { const next = new Set(current); added ? next.delete(key) : next.add(key); return next; });
   }
 
   return (
@@ -189,6 +204,7 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
           const image = typeof activity.metadata?.image === "string" ? activity.metadata.image : "";
           const categoryLabel = String(activity.metadata?.contentTypeLabel ?? "관광");
           const added = addedIds.has(activity.id);
+          const favorite = favoriteIds.has(`tour:${activity.id}`);
 
           return (
             <article key={activity.id} className="overflow-hidden rounded-[1.75rem] border border-black/5 bg-white shadow-sm">
@@ -222,14 +238,10 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
                   </ul>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => void togglePlan(activity, added)}
-                  className={`mt-4 w-full rounded-2xl px-4 py-3 text-sm font-black transition ${added ? "bg-emerald-100 text-emerald-700 hover:bg-rose-50 hover:text-rose-700" : "bg-neutral-900 text-white hover:bg-neutral-700"}`}
-                  aria-pressed={added}
-                >
-                  {added ? "✓ 추가됨 · 다시 누르면 취소" : "+ 일정에 추가"}
-                </button>
+                <div className="mt-4 grid grid-cols-[auto_1fr] gap-2">
+                  <button type="button" onClick={() => void toggleFavorite(activity)} aria-pressed={favorite} className={`rounded-2xl border px-4 py-3 text-sm font-black ${favorite ? "border-rose-200 bg-rose-50 text-rose-600" : "bg-white"}`}>{favorite ? "♥ 찜됨" : "♡ 찜"}</button>
+                  <button type="button" onClick={() => void togglePlan(activity, added)} className={`rounded-2xl px-4 py-3 text-sm font-black transition ${added ? "bg-emerald-100 text-emerald-700 hover:bg-rose-50 hover:text-rose-700" : "bg-neutral-900 text-white hover:bg-neutral-700"}`} aria-pressed={added}>{added ? "✓ 추가됨 · 취소" : "+ 일정에 추가"}</button>
+                </div>
               </div>
             </article>
           );
