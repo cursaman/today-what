@@ -42,7 +42,19 @@ export async function replacePlanItem(planId: number, itemId: number, activityId
 export async function deletePlan(planId: number) {
   const supabase = await createClient();
   if (!supabase) return;
-  await supabase.from("plans").delete().eq("id", planId);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase
+    .from("plans")
+    .delete()
+    .eq("id", planId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    redirect(`/my/plans/${planId}?deleteError=${encodeURIComponent(error.message)}`);
+  }
+
   revalidatePath("/my");
   redirect("/my");
 }

@@ -65,10 +65,7 @@ export function createDailyPlan(
     endTime,
     items: budgetSafeItems,
     totalCost: runningCost,
-<<<<<<< HEAD
-=======
     totalDistanceKm: 0,
     totalTravelMinutes: 0,
->>>>>>> 89392e5 (20일차 전체 기능 구현)
   };
 }

@@ -5,6 +5,9 @@ import { timeToMinutes } from "@/lib/plan/timeUtils";
 export function scoreActivity(activity: Activity, condition: RecommendationCondition) {
   let score = 50;
 
+  // /outdoor에서 사용자가 직접 일정에 추가한 활동은 추천 엔진에서 우선 배치합니다.
+  if (activity.metadata?.manuallySelected === true) score += 150;
+
   const matchedInterests = activity.interests.filter((interest) =>
     condition.interests.includes(interest)
   ).length;

@@ -1,30 +1,3 @@
-<<<<<<< HEAD
-# 오늘 뭐하지? — Day 12
-
-Next.js + Supabase + Vercel 기반 생활 일정 추천 MVP입니다.
-
-## Day 12 포함 기능
-- 추천 점수 기반 Activity 정렬
-- 고정시간 우선 일정 생성
-- A/B/C 3가지 일정 옵션
-- Supabase 이메일 회원가입/로그인
-- 선택 일정 `plans` / `plan_items` 저장
-- MY에서 사용자 본인 일정 조회
-- RLS 사용자별 데이터 보호
-
-## 환경변수
-Vercel Project > Settings > Environment Variables에 등록합니다.
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_KEY
-```
-
-## Supabase DB
-`supabase/day12.sql` 전체를 Supabase SQL Editor에서 한 번 실행하세요.
-
-## 실행
-=======
 # 오늘 뭐하지? — Day 20 Complete
 
 Next.js App Router + TypeScript + Tailwind + Supabase + Vercel 기반 MVP입니다.
@@ -43,30 +16,11 @@ Next.js App Router + TypeScript + Tailwind + Supabase + Vercel 기반 MVP입니�
 
 ## 1. 설치
 
->>>>>>> 89392e5 (20일차 전체 기능 구현)
 ```bash
 npm install
 npm run dev
 ```
 
-<<<<<<< HEAD
-## 주요 화면
-- `/` 메인
-- `/recommend` 추천 결과
-- `/plan` A/B/C 일정 및 저장
-- `/signup` 회원가입
-- `/login` 로그인
-- `/my` 저장한 일정
-
-## 배포
-GitHub와 Vercel이 연결되어 있다면 아래 명령 후 자동 배포됩니다.
-
-```bash
-git add .
-git commit -m "Day 12 Supabase auth and plan save"
-git push
-```
-=======
 ## 2. Supabase
 
 Supabase SQL Editor에서 순서대로 실행합니다.
@@ -113,4 +67,34 @@ TMDB 토큰이 없으면 기존 샘플 OTT 활동을 유지합니다.
 - TMDB Watch Provider 데이터 사용 시 화면에 JustWatch 출처 표시를 추가/유지하세요.
 - `KAKAO_REST_API_KEY`, `TOUR_API_KEY`, `TMDB_ACCESS_TOKEN`은 브라우저에 노출하면 안 됩니다.
 - 실제 영화관 상영시간과 범용 KBO 실시간 데이터는 별도 Provider 연결 대상으로 남겨두었습니다.
->>>>>>> 89392e5 (20일차 전체 기능 구현)
+
+## /outdoor 실제 TourAPI 연동
+
+`/outdoor` 페이지는 한국관광공사 국문 관광정보 서비스 `KorService2/areaBasedList2`를 서버에서 호출합니다.
+
+필수 Vercel 환경변수:
+
+```env
+TOUR_API_KEY=공공데이터포털_일반인증키
+```
+
+적용 후 Vercel에서 Redeploy 하세요. API 키는 `NEXT_PUBLIC_` 접두사를 붙이지 않습니다.
+
+기능:
+- 전국 17개 시도 지역 선택
+- 관광지 / 문화·전시 / 축제·행사 / 레저·체험 필터
+- 현재 날씨(Open-Meteo) 표시
+- 실제 TourAPI 이미지/주소/좌표 표시
+- 날씨와 지역 중심 거리 기반 추천 이유 표시
+- `일정에 추가` 클릭 시 최대 5개를 임시 일정 후보로 저장
+- `/plan`에서 직접 선택한 활동에 추천 우선순위를 부여하여 A/B/C 일정에 반영
+
+테스트 순서:
+1. `/outdoor` 접속
+2. 부산 등 지역 변경
+3. 카테고리 변경
+4. 관광 카드 출력 확인
+5. `일정에 추가` 클릭
+6. 상단 `일정 후보 N개 보기` 클릭
+7. `/plan` 상단에 `밖에서 선택한 활동 N개` 문구 확인
+8. A/B/C 일정에 선택 활동이 반영되는지 확인
