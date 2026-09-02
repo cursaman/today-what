@@ -23,7 +23,7 @@ function currentKoreanTime() {
   }).format(new Date()).replace("24:", "00:");
 }
 
-function parseOutdoorDraft(raw?: string): Activity[] {
+function parsePlanDraft(raw?: string): Activity[] {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(decodeURIComponent(raw));
@@ -41,7 +41,7 @@ function parseOutdoorDraft(raw?: string): Activity[] {
 
 export default async function PlanPage() {
   const cookieStore = await cookies();
-  const outdoorDraft = parseOutdoorDraft(cookieStore.get("today_what_outdoor_draft")?.value);
+  const planDraft = parsePlanDraft(cookieStore.get("today_what_outdoor_draft")?.value);
   const supabase = await createClient();
   let preferences: Record<string, unknown> | null = null;
 
@@ -80,9 +80,9 @@ export default async function PlanPage() {
     (liveTours.length ? activity.type !== "tour" : true) &&
     (liveOtt.length ? activity.type !== "ott" : true)
   );
-  const draftIds = new Set(outdoorDraft.map((activity) => activity.id));
+  const draftIds = new Set(planDraft.map((activity) => activity.id));
   const activities = [
-    ...outdoorDraft,
+    ...planDraft,
     ...baseActivities.filter((activity) => !draftIds.has(activity.id)),
     ...liveTours.filter((activity) => !draftIds.has(activity.id)),
     ...liveOtt.filter((activity) => !draftIds.has(activity.id)),
@@ -98,8 +98,8 @@ export default async function PlanPage() {
     <main className="mx-auto max-w-6xl px-4 py-12 pb-24">
       <p className="text-sm font-bold text-neutral-500">DAY 20 COMPLETE</p>
       <h1 className="mt-1 text-4xl font-black">오늘 일정 A/B/C</h1>
-      <p className="mt-3 text-neutral-600">개인 취향·날씨·관광/OTT Provider·이동 동선을 반영합니다. /outdoor에서 직접 추가한 활동은 일정 후보에서 우선 반영됩니다.</p>
-      {outdoorDraft.length > 0 ? <div className="mt-5 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-800">밖에서 선택한 활동 {outdoorDraft.length}개를 일정 후보에 우선 반영했습니다.</div> : null}
+      <p className="mt-3 text-neutral-600">개인 취향·날씨·관광/OTT Provider·이동 동선을 반영합니다. /outdoor 또는 /home에서 직접 추가한 활동은 일정 후보에서 우선 반영됩니다.</p>
+      {planDraft.length > 0 ? <div className="mt-5 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-800">직접 선택한 활동 {planDraft.length}개를 일정 후보에 우선 반영했습니다.</div> : null}
 
       <section className="mt-8 grid gap-3 rounded-3xl bg-neutral-900 p-6 text-white sm:grid-cols-4">
         <div><p className="text-xs text-white/50">지역</p><strong>{condition.region}</strong></div>

@@ -98,3 +98,10 @@ TOUR_API_KEY=공공데이터포털_일반인증키
 6. 상단 `일정 후보 N개 보기` 클릭
 7. `/plan` 상단에 `밖에서 선택한 활동 N개` 문구 확인
 8. A/B/C 일정에 선택 활동이 반영되는지 확인
+
+## HOME / TMDB + OTT
+- `/home` uses TMDB movie metadata and the KR watch-provider data.
+- Set `TMDB_ACCESS_TOKEN` in Vercel (server-only, do not prefix with NEXT_PUBLIC_).
+- Supported UI filters: Netflix, TVING, Disney+, Wavve, Watcha.
+- Streaming availability is sourced through TMDB's JustWatch partnership; keep the JustWatch attribution visible.
+- Movies added from `/home` use the same plan-draft cookie as `/outdoor` and are prioritized on `/plan`.

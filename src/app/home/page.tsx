@@ -1,4 +1,38 @@
-const items = ["영화/OTT", "TV", "스포츠", "요리", "독서", "홈트/취미"];
-export default function HomeActivityPage() {
-  return <main className="mx-auto max-w-6xl px-4 py-12 pb-24"><p className="text-sm font-bold text-neutral-500">HOME</p><h1 className="mt-1 text-4xl font-black">집에서 뭐하지?</h1><p className="mt-3 text-neutral-600">비 오는 날이나 쉬고 싶은 날을 위한 내부 활동입니다.</p><div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{items.map(x => <div key={x} className="rounded-3xl bg-white p-7 shadow-sm"><h2 className="text-xl font-black">{x}</h2><p className="mt-2 text-sm text-neutral-500">API 연결 예정</p></div>)}</div></main>;
+import { createClient } from "@/lib/supabase/server";
+import HomeExplorer from "./HomeExplorer";
+
+export const dynamic = "force-dynamic";
+
+export default async function HomeActivityPage() {
+  const supabase = await createClient();
+  let initialServices: string[] = [];
+
+  if (supabase) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      const { data } = await supabase
+        .from("user_preferences")
+        .select("ott_services")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (Array.isArray(data?.ott_services)) {
+        initialServices = data.ott_services.filter((value): value is string => typeof value === "string");
+      }
+    }
+  }
+
+  return (
+    <main className="mx-auto max-w-6xl px-4 py-12 pb-24">
+      <p className="text-sm font-bold text-neutral-500">HOME · REAL OTT</p>
+      <h1 className="mt-1 text-4xl font-black">집에서 뭐하지?</h1>
+      <p className="mt-3 max-w-3xl text-neutral-600">
+        TMDB의 영화 정보와 한국 OTT 구독 제공 정보를 조합합니다. 내가 이용하는 OTT를 고르고 마음에 드는 영화를 오늘 일정에 바로 넣을 수 있습니다.
+      </p>
+      <HomeExplorer initialServices={initialServices} />
+    </main>
+  );
 }
