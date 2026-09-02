@@ -80,31 +80,36 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
 
   const activities = useMemo(() => data?.activities ?? [], [data]);
 
-  async function addToPlan(activity: OutdoorActivity) {
-    const response = await fetch("/api/plan-draft", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        activity: {
-          id: activity.id,
-          type: activity.type,
-          title: activity.title,
-          description: activity.description,
-          durationMinutes: activity.durationMinutes,
-          fixedTime: activity.fixedTime,
-          indoor: activity.indoor,
-          cost: activity.cost,
-          location: activity.location,
-          coordinates: activity.coordinates,
-          interests: activity.interests,
-          source: activity.source,
-          metadata: activity.metadata,
-        },
-      }),
-    });
+  async function togglePlan(activity: OutdoorActivity, added: boolean) {
+    const response = await fetch(
+      added ? `/api/plan-draft?id=${encodeURIComponent(activity.id)}` : "/api/plan-draft",
+      added
+        ? { method: "DELETE" }
+        : {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              activity: {
+                id: activity.id,
+                type: activity.type,
+                title: activity.title,
+                description: activity.description,
+                durationMinutes: activity.durationMinutes,
+                fixedTime: activity.fixedTime,
+                indoor: activity.indoor,
+                cost: activity.cost,
+                location: activity.location,
+                coordinates: activity.coordinates,
+                interests: activity.interests,
+                source: activity.source,
+                metadata: activity.metadata,
+              },
+            }),
+          }
+    );
     const result = await response.json();
     if (!response.ok || !result.success) {
-      alert(result.message ?? "일정 추가에 실패했습니다.");
+      alert(result.message ?? (added ? "일정 후보 취소에 실패했습니다." : "일정 추가에 실패했습니다."));
       return;
     }
     const serverItems: Activity[] = Array.isArray(result.items) ? result.items : [];
@@ -221,11 +226,11 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
 
                 <button
                   type="button"
-                  disabled={added}
-                  onClick={() => void addToPlan(activity)}
-                  className={`mt-4 w-full rounded-2xl px-4 py-3 text-sm font-black ${added ? "bg-emerald-100 text-emerald-700" : "bg-neutral-900 text-white hover:bg-neutral-700"}`}
+                  onClick={() => void togglePlan(activity, added)}
+                  className={`mt-4 w-full rounded-2xl px-4 py-3 text-sm font-black transition ${added ? "bg-emerald-100 text-emerald-700 hover:bg-rose-50 hover:text-rose-700" : "bg-neutral-900 text-white hover:bg-neutral-700"}`}
+                  aria-pressed={added}
                 >
-                  {added ? "✓ 일정 후보에 추가됨" : "+ 일정에 추가"}
+                  {added ? "✓ 추가됨 · 다시 누르면 취소" : "+ 일정에 추가"}
                 </button>
               </div>
             </article>

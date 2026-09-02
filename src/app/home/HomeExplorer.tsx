@@ -88,22 +88,34 @@ export default function HomeExplorer({ initialServices }: { initialServices: str
     });
   }
 
-  async function addToPlan(activity: Activity) {
+  async function togglePlan(activity: Activity, added: boolean) {
     setMessage("");
     try {
-      const response = await fetch("/api/plan-draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activity }),
-      });
+      const response = await fetch(
+        added ? `/api/plan-draft?id=${encodeURIComponent(activity.id)}` : "/api/plan-draft",
+        added
+          ? { method: "DELETE" }
+          : {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ activity }),
+            }
+      );
       const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.message || "일정 추가에 실패했습니다.");
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || (added ? "일정 후보 취소에 실패했습니다." : "일정 추가에 실패했습니다."));
+      }
       const serverItems: Activity[] = Array.isArray(data.items) ? data.items : [];
+      const nextCount = Number(data.count ?? serverItems.length);
       setDraftIds(new Set(serverItems.map((item) => item.id)));
-      setDraftCount(Number(data.count ?? serverItems.length));
-      setMessage(`‘${activity.title}’을 일정 후보에 추가했습니다. 밖에서/집에서 후보를 합쳐 현재 ${Number(data.count ?? serverItems.length)}개입니다.`);
+      setDraftCount(nextCount);
+      setMessage(
+        added
+          ? `‘${activity.title}’을 일정 후보에서 취소했습니다. 현재 ${nextCount}개입니다.`
+          : `‘${activity.title}’을 일정 후보에 추가했습니다. 밖에서/집에서 후보를 합쳐 현재 ${nextCount}개입니다.`
+      );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "일정 추가에 실패했습니다.");
+      setMessage(error instanceof Error ? error.message : "일정 후보 변경에 실패했습니다.");
     }
   }
 
@@ -207,11 +219,11 @@ export default function HomeExplorer({ initialServices }: { initialServices: str
                     )}
                     <button
                       type="button"
-                      disabled={added}
-                      onClick={() => addToPlan(item.activity)}
-                      className="rounded-2xl bg-neutral-900 p-3 text-sm font-black text-white disabled:bg-emerald-600"
+                      onClick={() => void togglePlan(item.activity, added)}
+                      className={`rounded-2xl p-3 text-sm font-black transition ${added ? "bg-emerald-600 text-white hover:bg-rose-600" : "bg-neutral-900 text-white hover:bg-neutral-700"}`}
+                      aria-pressed={added}
                     >
-                      {added ? "추가됨 ✓" : "일정에 추가"}
+                      {added ? "추가됨 ✓ · 취소" : "일정에 추가"}
                     </button>
                   </div>
 
