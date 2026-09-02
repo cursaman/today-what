@@ -5,6 +5,13 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+function getSafeNextPath() {
+  if (typeof window === "undefined") return "/my";
+  const value = new URLSearchParams(window.location.search).get("next");
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/my";
+  return value;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -26,7 +33,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/my");
+      router.push(getSafeNextPath());
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "로그인에 실패했습니다.");
@@ -39,7 +46,7 @@ export default function LoginPage() {
     <main className="mx-auto max-w-md px-4 py-12 pb-24">
       <p className="text-sm font-bold text-neutral-500">ACCOUNT</p>
       <h1 className="mt-1 text-4xl font-black">로그인</h1>
-      <p className="mt-3 text-neutral-600">저장한 오늘의 일정을 MY에서 다시 확인할 수 있습니다.</p>
+      <p className="mt-3 text-neutral-600">로그인하면 저장한 일정과 내 취향을 이어서 관리할 수 있습니다.</p>
 
       <form onSubmit={handleLogin} className="mt-8 space-y-4 rounded-3xl border bg-white p-6 shadow-sm">
         <label className="block text-sm font-bold">
@@ -47,6 +54,7 @@ export default function LoginPage() {
           <input
             required
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             className="mt-2 w-full rounded-2xl border px-4 py-3 font-normal outline-none focus:ring-2"
@@ -60,6 +68,7 @@ export default function LoginPage() {
             required
             minLength={6}
             type="password"
+            autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             className="mt-2 w-full rounded-2xl border px-4 py-3 font-normal outline-none focus:ring-2"

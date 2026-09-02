@@ -131,3 +131,12 @@ TOUR_API_KEY=공공데이터포털_일반인증키
 - PC 상단 메뉴: `사용법` → `/guide`
 - 모바일 상단: `사용법` 버튼 제공
 - `/guide`에서 초보자용 6단계 사용 흐름과 각 페이지 바로가기 제공
+
+## Beginner onboarding update
+- Guide begins with signup instead of protected preferences page.
+- Signup fields use explicit labels and explain the next step.
+- New users with an immediate Supabase session move directly to `/my/preferences`.
+- Email-confirmation users are guided to `/login?next=/my/preferences`.
+- Login safely honors an internal `next` path.
+- Header and mobile account navigation show `로그인` while signed out and `MY` while signed in.
+- Preferences save screen exposes clear next actions for `/outdoor` and `/home`.

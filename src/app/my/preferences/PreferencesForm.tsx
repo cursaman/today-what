@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { savePreferences } from "./actions";
 
@@ -33,6 +34,7 @@ export default function PreferencesForm({ initialData }: { initialData: InitialP
   const [transportMode, setTransportMode] = useState(initialData?.transport_mode ?? "car");
   const [teamInput, setTeamInput] = useState("");
   const [message, setMessage] = useState("");
+  const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const toggle = (value: string, values: string[], setter: (value: string[]) => void) => setter(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
@@ -41,6 +43,7 @@ export default function PreferencesForm({ initialData }: { initialData: InitialP
     startTransition(async () => {
       const result = await savePreferences({ defaultRegion: region, budgetLevel: Number(budget), companionType: companion, interests: selectedInterests, favoriteTeams, ottServices, activityMode, transportMode });
       setMessage(result.message);
+      setSaved(result.success);
     });
   }
 
@@ -53,7 +56,8 @@ export default function PreferencesForm({ initialData }: { initialData: InitialP
     <section><h2 className="font-black">좋아하는 스포츠팀</h2><div className="mt-2 flex gap-2"><input className="min-w-0 flex-1 rounded-2xl border p-3" value={teamInput} onChange={(e)=>setTeamInput(e.target.value)} placeholder="예: 롯데 자이언츠"/><button type="button" className="rounded-2xl bg-neutral-900 px-4 font-bold text-white" onClick={()=>{const v=teamInput.trim();if(v&&!favoriteTeams.includes(v))setFavoriteTeams([...favoriteTeams,v]);setTeamInput("");}}>추가</button></div><div className="mt-2 flex flex-wrap gap-2">{favoriteTeams.map(team=><button type="button" key={team} onClick={()=>setFavoriteTeams(favoriteTeams.filter(v=>v!==team))} className="rounded-full bg-neutral-100 px-3 py-2 text-sm">{team} ×</button>)}</div></section>
     <section><h2 className="font-black">실내 / 실외 선호</h2><div className="mt-2 grid grid-cols-3 gap-2">{[["indoor","실내"],["balanced","균형"],["outdoor","실외"]].map(([v,l])=><button key={v} type="button" onClick={()=>setActivityMode(v)} className={`rounded-2xl border p-3 font-bold ${activityMode===v?"bg-neutral-900 text-white":""}`}>{l}</button>)}</div></section>
     <label className="block"><span className="font-black">주 이동수단</span><select className="mt-2 w-full rounded-2xl border p-3" value={transportMode} onChange={(e)=>setTransportMode(e.target.value)}><option value="car">자동차</option><option value="transit">대중교통</option><option value="walk">도보</option></select></label>
-    <button type="button" disabled={pending} onClick={submit} className="w-full rounded-2xl bg-neutral-900 p-4 font-black text-white disabled:opacity-50">{pending?"저장 중...":"내 취향 저장"}</button>
+    <button type="button" disabled={pending} onClick={submit} className="w-full rounded-2xl bg-neutral-900 p-4 font-black text-white disabled:opacity-50">{pending?"저장 중...":"내 취향 저장하고 활동 찾기"}</button>
     {message&&<p className="text-center text-sm font-bold text-neutral-600">{message}</p>}
+    {saved&&<div className="grid grid-cols-2 gap-2"><Link href="/outdoor" className="rounded-2xl border p-3 text-center text-sm font-black">밖에서 찾기</Link><Link href="/home" className="rounded-2xl border p-3 text-center text-sm font-black">집에서 찾기</Link></div>}
   </div>;
 }

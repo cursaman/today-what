@@ -3,14 +3,22 @@ import Link from "next/link";
 const steps = [
   {
     no: "1",
-    title: "내 취향을 먼저 저장해요",
-    desc: "MY → 취향설정에서 자주 활동하는 지역, 예산, 함께하는 사람, 관심사, 사용하는 OTT, 좋아하는 스포츠팀, 실내·실외 선호, 이동수단을 선택하세요.",
+    title: "처음이라면 회원가입부터 해요",
+    desc: "이메일과 비밀번호만 입력하면 시작할 수 있어요. 가입이 끝나면 바로 내 지역과 취향을 설정하는 화면으로 이어집니다.",
+    tip: "이미 계정이 있다면 로그인하면 됩니다.",
+    href: "/signup",
+    button: "회원가입하고 시작하기",
+  },
+  {
+    no: "2",
+    title: "내 취향을 저장해요",
+    desc: "자주 활동하는 지역, 예산, 함께하는 사람, 관심사, 사용하는 OTT, 좋아하는 스포츠팀, 실내·실외 선호, 이동수단을 선택하세요.",
     tip: "한 번 저장해 두면 다음 추천부터 자동으로 반영됩니다.",
     href: "/my/preferences",
     button: "내 취향 설정하기",
   },
   {
-    no: "2",
+    no: "3",
     title: "밖에서 할 일을 찾아요",
     desc: "‘밖에서’ 메뉴에서 지역과 종류를 고르면 관광지·문화시설·축제·레저 후보를 볼 수 있어요. 마음에 드는 곳은 ‘일정에 추가’를 누르세요.",
     tip: "비가 오면 실내 활동을 우선해서 보는 것이 편합니다.",
@@ -18,7 +26,7 @@ const steps = [
     button: "밖에서 찾기",
   },
   {
-    no: "3",
+    no: "4",
     title: "집에서 할 일을 찾아요",
     desc: "‘집에서’ 메뉴에서는 영화와 OTT 콘텐츠를 찾아볼 수 있어요. Netflix, TVING, Disney+, Wavve, Watcha 중 내가 쓰는 서비스를 선택해 보세요.",
     tip: "포스터와 평점을 보고 마음에 들면 ‘일정에 추가’를 누르면 됩니다.",
@@ -26,20 +34,12 @@ const steps = [
     button: "집에서 찾기",
   },
   {
-    no: "4",
+    no: "5",
     title: "A/B/C 하루 일정을 만들어요",
     desc: "관광지나 영화를 골랐다면 ‘일정만들기’로 이동하세요. 선택한 활동과 추천 후보를 조합해 서로 다른 A/B/C 하루 일정을 보여줍니다.",
     tip: "비용, 이동시간, 이동거리까지 함께 보고 가장 현실적인 일정을 고르세요.",
     href: "/plan",
     button: "일정 만들기",
-  },
-  {
-    no: "5",
-    title: "마음에 안 들면 활동을 바꿔요",
-    desc: "추천된 일정에서 마음에 들지 않는 활동은 ‘이 활동 바꾸기’를 눌러 다른 후보로 교체할 수 있어요.",
-    tip: "교체하면 비용과 이동시간·거리가 다시 계산됩니다.",
-    href: "/plan",
-    button: "일정 수정해 보기",
   },
   {
     no: "6",
@@ -58,11 +58,11 @@ export default function GuidePage() {
         <p className="mb-3 text-sm font-bold text-white/60">처음 오셨나요?</p>
         <h1 className="max-w-3xl text-3xl font-black leading-tight md:text-5xl">오늘 뭐하지? 사용법</h1>
         <p className="mt-5 max-w-3xl text-base leading-7 text-white/75 md:text-lg">
-          어렵지 않습니다. <strong className="text-white">취향 설정 → 활동 찾기 → 일정 만들기 → 저장</strong> 순서만 기억하세요.
+          어렵지 않습니다. <strong className="text-white">회원가입 → 취향 설정 → 활동 찾기 → 일정 만들기 → 저장</strong> 순서만 기억하세요.
           처음 사용하는 분도 아래 순서대로 버튼을 눌러 따라 하면 됩니다.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
-          <Link href="/my/preferences" className="rounded-full bg-white px-5 py-3 text-sm font-black text-black">처음부터 시작하기</Link>
+          <Link href="/signup" className="rounded-full bg-white px-5 py-3 text-sm font-black text-black">회원가입부터 시작하기</Link>
           <Link href="/plan" className="rounded-full border border-white/30 px-5 py-3 text-sm font-bold">바로 일정 만들기</Link>
         </div>
       </section>
@@ -70,7 +70,7 @@ export default function GuidePage() {
       <section className="mt-8 rounded-3xl border bg-white p-6 md:p-8">
         <p className="text-sm font-bold text-black/50">한 줄로 보는 사용 순서</p>
         <div className="mt-4 grid gap-3 text-sm font-bold md:grid-cols-6">
-          {["취향 설정", "밖에서 찾기", "집에서 찾기", "A/B/C 생성", "활동 교체", "MY 저장"].map((item, index) => (
+          {["회원가입", "취향 설정", "밖에서 찾기", "집에서 찾기", "A/B/C 생성", "MY 저장"].map((item, index) => (
             <div key={item} className="rounded-2xl bg-black/[0.04] p-4 text-center">
               <span className="mr-1 text-black/40">{index + 1}.</span>{item}
             </div>
@@ -119,8 +119,8 @@ export default function GuidePage() {
 
       <section className="mt-10 rounded-3xl bg-white p-6 text-center shadow-sm md:p-10">
         <h2 className="text-2xl font-black">가장 쉬운 시작 방법</h2>
-        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-black/60 md:text-base">처음이라면 모든 기능을 한 번에 보려고 하지 마세요. 먼저 취향을 저장하고, 밖에서 또는 집에서 활동 하나만 골라 일정에 추가해 보세요.</p>
-        <Link href="/my/preferences" className="mt-6 inline-block rounded-full bg-black px-6 py-3 text-sm font-black text-white">1단계 취향 설정부터 시작</Link>
+        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-black/60 md:text-base">처음이라면 모든 기능을 한 번에 보려고 하지 마세요. 먼저 회원가입과 취향 설정을 끝내고, 밖에서 또는 집에서 활동 하나만 골라 일정에 추가해 보세요.</p>
+        <Link href="/signup" className="mt-6 inline-block rounded-full bg-black px-6 py-3 text-sm font-black text-white">1단계 회원가입부터 시작</Link>
       </section>
     </main>
   );
