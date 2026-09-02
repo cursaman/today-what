@@ -12,6 +12,7 @@ const nav = [
   ["밖에서", "/outdoor"],
   ["집에서", "/home"],
   ["일정만들기", "/plan"],
+  ["사용법", "/guide"],
 ] as const;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -19,12 +20,17 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="ko">
       <body>
         <header className="sticky top-0 z-50 border-b border-black/5 bg-white/90 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-            <Link href="/" className="text-xl font-black tracking-tight">오늘 뭐하지?</Link>
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4">
+            <Link href="/" className="shrink-0 text-xl font-black tracking-tight">오늘 뭐하지?</Link>
             <nav className="hidden gap-6 text-sm font-semibold md:flex">
-              {nav.map(([label, href]) => <Link key={href} href={href} className="hover:opacity-60">{label}</Link>)}
+              {nav.map(([label, href]) => (
+                <Link key={href} href={href} className="hover:opacity-60">{label}</Link>
+              ))}
             </nav>
-            <Link href="/my" className="rounded-full border px-4 py-2 text-sm font-semibold">MY</Link>
+            <div className="flex shrink-0 items-center gap-2">
+              <Link href="/guide" className="rounded-full bg-black px-3 py-2 text-xs font-bold text-white md:hidden">사용법</Link>
+              <Link href="/my" className="rounded-full border px-4 py-2 text-sm font-semibold">MY</Link>
+            </div>
           </div>
         </header>
         {children}
