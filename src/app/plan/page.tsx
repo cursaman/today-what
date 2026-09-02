@@ -18,15 +18,6 @@ import type { RecommendationCondition } from "@/types/recommendation";
 import type { UserTransportMode } from "@/types/preferences";
 import { decodePlanDraft } from "@/lib/plan/draftCodec";
 
-function currentKoreanTime() {
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(new Date()).replace("24:", "00:");
-}
-
 function validTime(value: string | undefined, fallback: string) {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(value ?? "") ? value! : fallback;
 }
@@ -53,7 +44,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
   const budget = typeof preferences?.budget_level === "number" ? preferences.budget_level : 50000;
   const interests = Array.isArray(preferences?.interests) ? preferences.interests.filter((v): v is string => typeof v === "string") : ["movie", "sports", "travel", "ott"];
   const favoriteTeams = Array.isArray(preferences?.favorite_teams) ? preferences.favorite_teams.filter((v): v is string => typeof v === "string") : ["롯데"];
-  const startTime = validTime(query.start, currentKoreanTime());
+  const startTime = validTime(query.start, "06:00");
   const requestedEndTime = validTime(query.end, "23:00");
   const endTime = requestedEndTime > startTime ? requestedEndTime : "23:59";
   const startLocation = getRegionLocation(region);
