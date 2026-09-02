@@ -3,7 +3,7 @@ import type { WeatherInfo } from "./types";
 
 interface OpenMeteoResponse {
   current?: { temperature_2m?: number; precipitation?: number; weather_code?: number };
-  hourly?: { precipitation_probability?: number[] };
+  hourly?: { time?: string[]; precipitation_probability?: number[] };
 }
 
 function describeWeather(code = 0) {
@@ -13,7 +13,27 @@ function describeWeather(code = 0) {
   return "맑음";
 }
 
-export async function getWeather(region: string, coordinates: Coordinates): Promise<WeatherInfo> {
+function precipitationForWindow(data: OpenMeteoResponse, startTime?: string, endTime?: string) {
+  const times = data.hourly?.time ?? [];
+  const values = data.hourly?.precipitation_probability ?? [];
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+  const nowHour = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Seoul", hour: "2-digit", hourCycle: "h23",
+  }).format(new Date());
+  const from = startTime ?? `${nowHour}:00`;
+  const to = endTime ?? "23:59";
+  const selected = values.filter((_, index) => {
+    const value = times[index];
+    if (!value?.startsWith(`${today}T`)) return false;
+    const time = value.slice(11, 16);
+    return time >= from && time <= to;
+  });
+  return selected.length ? Math.max(...selected) : 0;
+}
+
+export async function getWeather(region: string, coordinates: Coordinates, startTime?: string, endTime?: string): Promise<WeatherInfo> {
   try {
     const url = new URL("https://api.open-meteo.com/v1/forecast");
     url.searchParams.set("latitude", String(coordinates.latitude));
@@ -24,7 +44,7 @@ export async function getWeather(region: string, coordinates: Coordinates): Prom
     const response = await fetch(url, { next: { revalidate: 900 } });
     if (!response.ok) throw new Error(String(response.status));
     const data = (await response.json()) as OpenMeteoResponse;
-    const precipitationProbability = data.hourly?.precipitation_probability?.[0] ?? 0;
+    const precipitationProbability = precipitationForWindow(data, startTime, endTime);
     const precipitation = data.current?.precipitation ?? 0;
     const code = data.current?.weather_code ?? 0;
     return {

@@ -4,9 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { sampleActivities } from "@/data/sampleActivities";
-import { calculateDistanceKm } from "@/lib/location/calculateDistance";
-import { estimateTravelMinutes } from "@/lib/location/estimateTravelTime";
 import { getRegionLocation } from "@/lib/location/regionCoordinates";
+import { createTravelAwarePlan } from "@/lib/plan/createTravelAwarePlan";
+import { timeToMinutes } from "@/lib/plan/timeUtils";
+import type { Activity, ActivityType } from "@/types/activity";
+import type { PlanStyle } from "@/types/plan";
+import type { UserTransportMode } from "@/types/preferences";
 
 async function getOwnedPlan(planId: number) {
   const supabase = await createClient();
@@ -16,7 +19,7 @@ async function getOwnedPlan(planId: number) {
 
   const { data: plan } = await supabase
     .from("plans")
-    .select("id,user_id,region")
+    .select("id,user_id,region,style,start_time,end_time,total_cost")
     .eq("id", planId)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -45,80 +48,60 @@ export async function replacePlanItem(planId: number, itemId: number, activityId
   if (!supabase || !user) redirect("/login");
   if (!plan) redirect("/my");
 
-  const { data: target } = await supabase
+  const { data: dbItems } = await supabase
     .from("plan_items")
-    .select("id,plan_id,fixed_time,start_time,end_time")
-    .eq("id", itemId)
-    .eq("plan_id", planId)
-    .maybeSingle();
-
-  if (!target || target.fixed_time) return;
-
-  const { error: replaceError } = await supabase
-    .from("plan_items")
-    .update({
-      activity_id: replacement.id,
-      title: replacement.title,
-      activity_type: replacement.type,
-      fixed_time: replacement.fixedTime,
-      cost: replacement.cost,
-      latitude: replacement.coordinates?.latitude ?? null,
-      longitude: replacement.coordinates?.longitude ?? null,
-      metadata: { ...(replacement.metadata ?? {}), location: replacement.location ?? null },
-    })
-    .eq("id", itemId)
-    .eq("plan_id", planId);
-  if (replaceError) throw new Error(`활동 교체 실패: ${replaceError.message}`);
-
-  const { data: items } = await supabase
-    .from("plan_items")
-    .select("id,cost,sort_order,latitude,longitude,metadata")
+    .select("id,activity_id,title,activity_type,start_time,end_time,fixed_time,duration_minutes,cost,sort_order,latitude,longitude,travel_minutes,distance_km,transport_mode,metadata")
     .eq("plan_id", planId)
     .order("sort_order", { ascending: true });
 
-  const start = getRegionLocation(plan.region ?? "부산");
-  let previous = { latitude: start.latitude, longitude: start.longitude };
-  let totalCost = 0;
-  let totalDistanceKm = 0;
-  let totalTravelMinutes = 0;
+  const target = dbItems?.find((item) => Number(item.id) === itemId);
+  if (!target || target.fixed_time) return;
+  const activities: Activity[] = (dbItems ?? []).map((item) => {
+    if (Number(item.id) === itemId) return { ...replacement, metadata: { ...replacement.metadata, manuallySelected: true } };
+    const durationMinutes = Number(item.duration_minutes ?? Math.max(1, timeToMinutes(item.end_time) - timeToMinutes(item.start_time)));
+    return {
+      id: item.activity_id,
+      type: item.activity_type as ActivityType,
+      title: item.title,
+      startAt: item.fixed_time ? item.start_time : undefined,
+      durationMinutes,
+      fixedTime: item.fixed_time,
+      indoor: typeof item.metadata?.indoor === "boolean" ? item.metadata.indoor : item.metadata?.location === "집",
+      cost: Number(item.cost ?? 0),
+      location: typeof item.metadata?.location === "string" ? item.metadata.location : undefined,
+      coordinates: item.latitude != null && item.longitude != null ? { latitude: Number(item.latitude), longitude: Number(item.longitude) } : undefined,
+      interests: [], source: "saved", metadata: { ...(item.metadata ?? {}), manuallySelected: true },
+    };
+  });
+  const transportMode: UserTransportMode = dbItems?.[0]?.transport_mode === "walk" || dbItems?.[0]?.transport_mode === "transit" ? dbItems[0].transport_mode : "car";
+  const recalculated = await createTravelAwarePlan(
+    activities, plan.start_time, plan.end_time, Number.MAX_SAFE_INTEGER,
+    (plan.style as PlanStyle) ?? "balanced", getRegionLocation(plan.region ?? "부산"), transportMode,
+  );
+  if (recalculated.plan.items.length !== dbItems?.length) throw new Error("교체 활동을 현재 일정 시간에 배치할 수 없습니다.");
 
-  const recalculatedItems: Array<{ id: number; distanceKm: number; travelMinutes: number }> = [];
-  for (const item of items ?? []) {
-    totalCost += Number(item.cost ?? 0);
-    const location = typeof item.metadata?.location === "string" ? item.metadata.location : "";
-    const isHome = location === "집";
-    let distanceKm = 0;
-    let travelMinutes = 0;
-
-    if (!isHome && item.latitude != null && item.longitude != null) {
-      const current = { latitude: Number(item.latitude), longitude: Number(item.longitude) };
-      distanceKm = calculateDistanceKm(previous.latitude, previous.longitude, current.latitude, current.longitude);
-      travelMinutes = estimateTravelMinutes(distanceKm);
-      previous = current;
-    }
-
-    totalDistanceKm += distanceKm;
-    totalTravelMinutes += travelMinutes;
-
-    recalculatedItems.push({ id: item.id, distanceKm: Number(distanceKm.toFixed(2)), travelMinutes });
-  }
-
-  if (recalculatedItems.length) {
-    const results = await Promise.all(recalculatedItems.map((item) => supabase
-      .from("plan_items")
-      .update({ distance_km: item.distanceKm, travel_minutes: item.travelMinutes, transport_mode: "estimate" })
-      .eq("id", item.id)
-      .eq("plan_id", planId)));
-    const itemsError = results.find((result) => result.error)?.error;
-    if (itemsError) throw new Error(`이동 정보 갱신 실패: ${itemsError.message}`);
-  }
+  const results = await Promise.all(recalculated.plan.items.map((item, index) => supabase
+    .from("plan_items")
+    .update({
+      activity_id: item.activity.id, title: item.activity.title, activity_type: item.activity.type,
+      start_time: item.startTime, end_time: item.endTime, fixed_time: item.fixedTime,
+      duration_minutes: item.activity.durationMinutes, cost: item.activity.cost, sort_order: index,
+      latitude: item.activity.coordinates?.latitude ?? null, longitude: item.activity.coordinates?.longitude ?? null,
+      travel_minutes: item.travelFromPreviousMinutes ?? 0, distance_km: item.distanceFromPreviousKm ?? 0,
+      transport_mode: item.transportMode ?? "estimate",
+      metadata: { ...(item.activity.metadata ?? {}), manuallySelected: undefined, location: item.activity.location ?? null },
+    })
+    .eq("id", dbItems[index].id)
+    .eq("plan_id", planId)));
+  const itemsError = results.find((result) => result.error)?.error;
+  if (itemsError) throw new Error(`활동 교체 실패: ${itemsError.message}`);
 
   const { error: planError } = await supabase
     .from("plans")
     .update({
-      total_cost: totalCost,
-      total_distance_km: Number(totalDistanceKm.toFixed(2)),
-      total_travel_minutes: totalTravelMinutes,
+      total_cost: recalculated.plan.totalCost,
+      total_distance_km: Number(recalculated.plan.totalDistanceKm.toFixed(2)),
+      total_travel_minutes: recalculated.plan.totalTravelMinutes,
     })
     .eq("id", planId)
     .eq("user_id", user.id);

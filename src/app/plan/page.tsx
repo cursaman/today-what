@@ -1,6 +1,6 @@
 import { sampleActivities } from "@/data/sampleActivities";
 import { PLAN_STYLES, rankActivitiesForStyle } from "@/lib/plan/createPlanOptions";
-import { createTravelAwarePlan } from "@/lib/plan/createTravelAwarePlan";
+import { createTravelAwarePlan, type TravelRouteCache } from "@/lib/plan/createTravelAwarePlan";
 import { recommendActivities } from "@/lib/recommendation/recommend";
 import { createClient } from "@/lib/supabase/server";
 import { getRegionLocation } from "@/lib/location/regionCoordinates";
@@ -50,7 +50,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
   const startLocation = getRegionLocation(region);
   const ottServices = Array.isArray(preferences?.ott_services) ? preferences.ott_services.filter((v): v is string => typeof v === "string") : [];
   const [weather, tourItems, liveOtt] = await Promise.all([
-    getWeather(region, startLocation),
+    getWeather(region, startLocation, startTime, endTime),
     getTours(region),
     getOttActivities(ottServices),
   ]);
@@ -90,11 +90,12 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
     ...liveOtt.filter((activity) => !draftIds.has(activity.id)),
   ];
   const recommendations = recommendActivities(activities, condition);
+  const sharedRouteCache: TravelRouteCache = new Map();
   const options: PlanOption[] = await Promise.all(PLAN_STYLES.map(async (option) => {
     const ranked = rankActivitiesForStyle(recommendations, option.style);
     const result = await createTravelAwarePlan(
       ranked, condition.startTime, condition.endTime, condition.budget,
-      option.style, startLocation, transportMode,
+      option.style, startLocation, transportMode, sharedRouteCache,
     );
     return { ...option, id: option.style, plan: result.plan, draftFailures: result.draftFailures };
   }));

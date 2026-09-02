@@ -61,7 +61,7 @@ export default function PlanOptionCard({ option, candidates, region, budget, sta
       const response = await fetch("/api/plan/recalculate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: provisional, style: option.style, startLocation, preferredTransportMode }),
+        body: JSON.stringify({ plan: provisional, style: option.style, startLocation, preferredTransportMode, budget }),
       });
       if (response.ok) {
         const data = await response.json();
@@ -146,6 +146,7 @@ export default function PlanOptionCard({ option, candidates, region, budget, sta
             startTime: item.startTime,
             endTime: item.endTime,
             fixedTime: item.fixedTime,
+            durationMinutes: item.activity.durationMinutes,
             cost: item.activity.cost,
             latitude: item.activity.coordinates?.latitude,
             longitude: item.activity.coordinates?.longitude,

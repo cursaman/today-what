@@ -18,6 +18,7 @@ export interface SavePlanInput {
     startTime: string;
     endTime: string;
     fixedTime: boolean;
+    durationMinutes: number;
     cost: number;
     latitude?: number;
     longitude?: number;
@@ -41,6 +42,7 @@ export async function savePlan(input: SavePlanInput) {
       !Number.isFinite(input.totalCost) || input.totalCost < 0 || input.items.length > 30 ||
       input.items.some((item) => !item.activityId || item.activityId.length > 200 || !item.title || item.title.length > 200 ||
         !timePattern.test(item.startTime) || !timePattern.test(item.endTime) || !Number.isFinite(item.cost) || item.cost < 0 ||
+        !Number.isFinite(item.durationMinutes) || item.durationMinutes <= 0 || item.durationMinutes > 1440 ||
         JSON.stringify(item.metadata ?? {}).length > 10_000)) {
     return { success: false, message: "저장할 일정 데이터가 올바르지 않습니다." };
   }
@@ -73,6 +75,7 @@ export async function savePlan(input: SavePlanInput) {
         start_time: item.startTime,
         end_time: item.endTime,
         fixed_time: item.fixedTime,
+        duration_minutes: item.durationMinutes,
         cost: item.cost,
         sort_order: index,
         latitude: item.latitude ?? null,

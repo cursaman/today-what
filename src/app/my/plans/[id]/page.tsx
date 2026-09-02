@@ -7,6 +7,7 @@ import type { PlanItem } from "@/types/plan";
 import type { ActivityType } from "@/types/activity";
 import { deletePlan, replacePlanItem, updatePlanTitle } from "./actions";
 import { sampleActivities } from "@/data/sampleActivities";
+import { timeToMinutes } from "@/lib/plan/timeUtils";
 
 export default async function PlanDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,7 +19,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ id:
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: plan, error } = await supabase.from("plans").select(`id,title,style,region,plan_date,total_cost,total_distance_km,total_travel_minutes,start_time,end_time,plan_items(id,activity_id,title,activity_type,start_time,end_time,fixed_time,cost,sort_order,latitude,longitude,travel_minutes,distance_km,transport_mode,metadata)`).eq("id", planId).eq("user_id", user.id).maybeSingle();
+  const { data: plan, error } = await supabase.from("plans").select(`id,title,style,region,plan_date,total_cost,total_distance_km,total_travel_minutes,start_time,end_time,plan_items(id,activity_id,title,activity_type,start_time,end_time,fixed_time,duration_minutes,cost,sort_order,latitude,longitude,travel_minutes,distance_km,transport_mode,metadata)`).eq("id", planId).eq("user_id", user.id).maybeSingle();
   if (error || !plan) notFound();
 
   const dbItems = [...(plan.plan_items ?? [])].sort((a, b) => a.sort_order - b.sort_order);
@@ -27,7 +28,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ id:
       id: item.activity_id,
       type: item.activity_type as ActivityType,
       title: item.title,
-      durationMinutes: 0,
+      durationMinutes: Number(item.duration_minutes ?? Math.max(1, timeToMinutes(item.end_time) - timeToMinutes(item.start_time))),
       fixedTime: item.fixed_time,
       indoor: false,
       cost: Number(item.cost ?? 0),
