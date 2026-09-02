@@ -3,7 +3,7 @@ import { getStyleScore } from "@/lib/recommendation/styleScore";
 import type { PlanOption, PlanStyle } from "@/types/plan";
 import { createDailyPlan } from "./createDailyPlan";
 
-const styles: Array<{
+export const PLAN_STYLES: Array<{
   style: PlanStyle;
   title: string;
   description: string;
@@ -31,22 +31,8 @@ export function createPlanOptions(
   endTime: string,
   budget: number
 ): PlanOption[] {
-  return styles.map((option) => {
-    const ranked = activities
-      .map((activity) => ({
-        ...activity,
-        score: activity.score + getStyleScore(activity, option.style),
-      }))
-      .sort((a, b) => {
-        const aManual = a.metadata?.manuallySelected === true;
-        const bManual = b.metadata?.manuallySelected === true;
-
-        // 사용자가 직접 고른 후보는 A/B/C 스타일 점수보다 항상 우선합니다.
-        // 따라서 /home에서 직접 고른 OTT 영화가 자동 추천 관광지에 밀려 빠지지 않습니다.
-        if (aManual !== bManual) return aManual ? -1 : 1;
-
-        return b.score - a.score;
-      });
+  return PLAN_STYLES.map((option) => {
+    const ranked = rankActivitiesForStyle(activities, option.style);
 
     return {
       id: option.style,
@@ -56,4 +42,15 @@ export function createPlanOptions(
       plan: createDailyPlan(ranked, startTime, endTime, budget),
     };
   });
+}
+
+export function rankActivitiesForStyle(activities: ScoredActivity[], style: PlanStyle) {
+  return activities
+    .map((activity) => ({ ...activity, score: activity.score + getStyleScore(activity, style) }))
+    .sort((a, b) => {
+      const aManual = a.metadata?.manuallySelected === true;
+      const bManual = b.metadata?.manuallySelected === true;
+      if (aManual !== bManual) return aManual ? -1 : 1;
+      return b.score - a.score;
+    });
 }

@@ -22,10 +22,17 @@ export interface DailyPlan {
 
 export type PlanStyle = "outdoor" | "balanced" | "relaxed";
 
+export interface DraftFailure {
+  id: string;
+  title: string;
+  reason: string;
+}
+
 export interface PlanOption {
   id: PlanStyle;
   title: string;
   description: string;
   style: PlanStyle;
   plan: DailyPlan;
+  draftFailures?: DraftFailure[];
 }

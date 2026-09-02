@@ -1,6 +1,6 @@
 import { sampleActivities } from "@/data/sampleActivities";
-import { createPlanOptions } from "@/lib/plan/createPlanOptions";
-import { enrichPlanWithTravel } from "@/lib/plan/enrichPlanWithTravel";
+import { PLAN_STYLES, rankActivitiesForStyle } from "@/lib/plan/createPlanOptions";
+import { createTravelAwarePlan } from "@/lib/plan/createTravelAwarePlan";
 import { recommendActivities } from "@/lib/recommendation/recommend";
 import { createClient } from "@/lib/supabase/server";
 import { getRegionLocation } from "@/lib/location/regionCoordinates";
@@ -27,7 +27,12 @@ function currentKoreanTime() {
   }).format(new Date()).replace("24:", "00:");
 }
 
-export default async function PlanPage() {
+function validTime(value: string | undefined, fallback: string) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value ?? "") ? value! : fallback;
+}
+
+export default async function PlanPage({ searchParams }: { searchParams: Promise<{ start?: string; end?: string }> }) {
+  const query = await searchParams;
   const cookieStore = await cookies();
   const supabase = await createClient();
   let preferences: Record<string, unknown> | null = null;
@@ -48,7 +53,9 @@ export default async function PlanPage() {
   const budget = typeof preferences?.budget_level === "number" ? preferences.budget_level : 50000;
   const interests = Array.isArray(preferences?.interests) ? preferences.interests.filter((v): v is string => typeof v === "string") : ["movie", "sports", "travel", "ott"];
   const favoriteTeams = Array.isArray(preferences?.favorite_teams) ? preferences.favorite_teams.filter((v): v is string => typeof v === "string") : ["롯데"];
-  const startTime = currentKoreanTime();
+  const startTime = validTime(query.start, currentKoreanTime());
+  const requestedEndTime = validTime(query.end, "23:00");
+  const endTime = requestedEndTime > startTime ? requestedEndTime : "23:59";
   const startLocation = getRegionLocation(region);
   const ottServices = Array.isArray(preferences?.ott_services) ? preferences.ott_services.filter((v): v is string => typeof v === "string") : [];
   const [weather, tourItems, liveOtt] = await Promise.all([
@@ -66,7 +73,7 @@ export default async function PlanPage() {
   const condition: RecommendationCondition = {
     region,
     startTime,
-    endTime: "23:00",
+    endTime,
     budget,
     raining: weather.raining,
     companion: typeof preferences?.companion_type === "string" ? preferences.companion_type : "alone",
@@ -92,11 +99,14 @@ export default async function PlanPage() {
     ...liveOtt.filter((activity) => !draftIds.has(activity.id)),
   ];
   const recommendations = recommendActivities(activities, condition);
-  const baseOptions = createPlanOptions(recommendations, condition.startTime, condition.endTime, condition.budget);
-  const options: PlanOption[] = await Promise.all(baseOptions.map(async (option) => ({
-    ...option,
-    plan: await enrichPlanWithTravel(option.plan, option.style, startLocation, condition.transportMode),
-  })));
+  const options: PlanOption[] = await Promise.all(PLAN_STYLES.map(async (option) => {
+    const ranked = rankActivitiesForStyle(recommendations, option.style);
+    const result = await createTravelAwarePlan(
+      ranked, condition.startTime, condition.endTime, condition.budget,
+      option.style, startLocation, transportMode,
+    );
+    return { ...option, id: option.style, plan: result.plan, draftFailures: result.draftFailures };
+  }));
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-12 pb-24">
@@ -104,6 +114,16 @@ export default async function PlanPage() {
       <h1 className="mt-1 text-4xl font-black">오늘 일정 A/B/C</h1>
       <p className="mt-3 text-neutral-600">개인 취향·날씨·관광/OTT Provider·이동 동선을 반영합니다. /outdoor 또는 /home에서 직접 추가한 활동은 일정 후보에서 우선 반영됩니다.</p>
       <PlanDraftSummary items={planDraft.map((activity) => ({ id: activity.id, title: activity.title, type: activity.type, location: activity.location }))} />
+
+      <form method="get" className="mt-6 grid gap-3 rounded-3xl border bg-white p-5 shadow-sm sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <label className="text-sm font-black">일정 시작
+          <input type="time" name="start" defaultValue={condition.startTime} className="mt-2 block w-full rounded-2xl border px-4 py-3 font-normal" />
+        </label>
+        <label className="text-sm font-black">일정 종료
+          <input type="time" name="end" defaultValue={condition.endTime} className="mt-2 block w-full rounded-2xl border px-4 py-3 font-normal" />
+        </label>
+        <button className="rounded-2xl bg-neutral-900 px-5 py-3 font-black text-white">이 시간으로 다시 짜기</button>
+      </form>
 
       <section className="mt-8 grid gap-3 rounded-3xl bg-neutral-900 p-6 text-white sm:grid-cols-4">
         <div><p className="text-xs text-white/50">지역</p><strong>{condition.region}</strong></div>

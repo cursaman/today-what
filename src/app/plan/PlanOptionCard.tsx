@@ -31,6 +31,7 @@ export default function PlanOptionCard({ option, candidates, region, budget, sta
     () => selectedDraftIds.filter((id) => !usedIds.has(id)),
     [selectedDraftIds, usedIds],
   );
+  const failureById = useMemo(() => new Map((option.draftFailures ?? []).map((failure) => [failure.id, failure])), [option.draftFailures]);
 
   function replacementCandidates(index: number) {
     const current = plan.items[index];
@@ -87,12 +88,21 @@ export default function PlanOptionCard({ option, candidates, region, budget, sta
           {reflectedDraftCount === selectedDraftIds.length ? (
             <span className="ml-2 font-medium text-emerald-700/80">내가 선택한 일정을 먼저 배치했습니다.</span>
           ) : (
-            <span className="ml-2 font-medium text-amber-700">선택한 후보끼리 시간이 겹치거나 오늘 남은 시간·예산 안에 들어가지 않는 후보 {missingDraftIds.length}개가 있습니다.</span>
+            <span className="ml-2 font-medium text-amber-700">반영하지 못한 후보 {missingDraftIds.length}개의 이유를 아래에서 확인하세요.</span>
           )}
         </div>
       ) : (
         <div className="mt-5 rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-600">직접 선택한 후보 없이 취향·날씨 기준으로 자동 구성한 일정입니다.</div>
       )}
+
+      {missingDraftIds.length > 0 ? (
+        <ul className="mt-3 space-y-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          {missingDraftIds.map((id) => {
+            const failure = failureById.get(id);
+            return <li key={id}><strong>{failure?.title ?? id}</strong> — {failure?.reason ?? "다른 직접 선택 후보를 먼저 배치한 뒤 남은 시간이 부족합니다."}</li>;
+          })}
+        </ul>
+      ) : null}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.1fr]">
         <div className="space-y-3">
