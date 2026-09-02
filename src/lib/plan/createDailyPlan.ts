@@ -11,6 +11,10 @@ function activityScore(activity: Activity) {
     : 0;
 }
 
+function isManuallySelected(activity: Activity) {
+  return activity.metadata?.manuallySelected === true;
+}
+
 function overlaps(a: Activity, b: Activity) {
   if (!a.startAt || !b.startAt) return false;
   const aStart = timeToMinutes(a.startAt);
@@ -23,7 +27,12 @@ function overlaps(a: Activity, b: Activity) {
 // 고정시간 활동끼리 겹치면 단순히 빠른 시간 순서가 아니라 추천 점수가 높은 활동을 우선합니다.
 function selectNonOverlappingFixedActivities(activities: Activity[]) {
   const selected: Activity[] = [];
-  const ranked = [...activities].sort((a, b) => activityScore(b) - activityScore(a));
+  const ranked = [...activities].sort((a, b) => {
+    const aManual = isManuallySelected(a);
+    const bManual = isManuallySelected(b);
+    if (aManual !== bManual) return aManual ? -1 : 1;
+    return activityScore(b) - activityScore(a);
+  });
 
   for (const activity of ranked) {
     if (selected.some((picked) => overlaps(activity, picked))) continue;
@@ -59,25 +68,37 @@ export function createDailyPlan(
   const flexibleCandidates = activities
     .filter((activity) => !activity.fixedTime && activity.cost <= remainingBudget)
     .sort((a, b) => {
-      const aManual = a.metadata?.manuallySelected === true;
-      const bManual = b.metadata?.manuallySelected === true;
+      const aManual = isManuallySelected(a);
+      const bManual = isManuallySelected(b);
 
-      // 직접 선택한 활동은 자동 추천 활동보다 먼저 빈 시간에 배치합니다.
-      // 같은 직접 선택 후보끼리는 기존 추천 순서를 유지합니다.
+      // 사용자가 직접 선택한 일정이 오늘 일정의 뼈대입니다.
+      // 자동 추천은 직접 선택 후보가 배치된 뒤 남는 시간에만 들어갑니다.
       if (aManual !== bManual) return aManual ? -1 : 1;
-      return 0;
+      return activityScore(b) - activityScore(a);
     });
   const flexibleItems = fillTimeSlots(freeSlots, flexibleCandidates);
 
   const items = [...fixedItems, ...flexibleItems]
     .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
 
+  // 예산도 사용자가 직접 선택한 활동을 먼저 확보한 뒤 자동 추천에 사용합니다.
+  // 이렇게 해야 앞 시간대의 자동 추천이 예산을 먼저 써서 직접 선택 후보를 밀어내지 않습니다.
+  const allowedIds = new Set<string>();
   let runningCost = 0;
-  const budgetSafeItems = items.filter((item) => {
-    if (runningCost + item.activity.cost > budget) return false;
+
+  for (const item of items.filter((value) => isManuallySelected(value.activity))) {
+    if (runningCost + item.activity.cost > budget) continue;
+    allowedIds.add(item.activity.id);
     runningCost += item.activity.cost;
-    return true;
-  });
+  }
+
+  for (const item of items.filter((value) => !isManuallySelected(value.activity))) {
+    if (runningCost + item.activity.cost > budget) continue;
+    allowedIds.add(item.activity.id);
+    runningCost += item.activity.cost;
+  }
+
+  const budgetSafeItems = items.filter((item) => allowedIds.has(item.activity.id));
 
   return {
     startTime,

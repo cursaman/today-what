@@ -11,6 +11,10 @@ function isHome(item: PlanItem) {
   return item.activity.location === "집" || item.activity.type === "ott";
 }
 
+function isManuallySelected(item: PlanItem) {
+  return item.activity.metadata?.manuallySelected === true;
+}
+
 async function routeBetween(from: Coordinates, item: PlanItem) {
   if (isHome(item) || !item.activity.coordinates) {
     return { distanceKm: 0, durationMinutes: 0, mode: "estimate" as const, source: "home-or-unknown" };
@@ -42,7 +46,9 @@ export async function enrichPlanWithTravel(
     const route = await routeBetween(previousCoordinates, item);
 
     const transportFactor = preferredTransportMode === "walk" ? 0.65 : preferredTransportMode === "transit" ? 0.85 : 1;
-    if (!item.fixedTime && route.durationMinutes > MAX_TRAVEL[style] * transportFactor) continue;
+    // 자동 추천은 스타일별 이동 한도를 적용하지만, 직접 선택한 후보는
+    // 사용자의 의사를 우선하여 이동이 길다는 이유만으로 제거하지 않습니다.
+    if (!item.fixedTime && !isManuallySelected(item) && route.durationMinutes > MAX_TRAVEL[style] * transportFactor) continue;
 
     const earliestArrival = cursor + route.durationMinutes;
 
