@@ -9,6 +9,11 @@ export interface SavePlanInput {
   startTime: string;
   endTime: string;
   totalCost: number;
+<<<<<<< HEAD
+=======
+  totalDistanceKm: number;
+  totalTravelMinutes: number;
+>>>>>>> 89392e5 (20일차 전체 기능 구현)
   items: Array<{
     activityId: string;
     title: string;
@@ -17,6 +22,15 @@ export interface SavePlanInput {
     endTime: string;
     fixedTime: boolean;
     cost: number;
+<<<<<<< HEAD
+=======
+    latitude?: number;
+    longitude?: number;
+    travelMinutes?: number;
+    distanceKm?: number;
+    transportMode?: string;
+    metadata?: Record<string, unknown>;
+>>>>>>> 89392e5 (20일차 전체 기능 구현)
   }>;
 }
 
@@ -37,15 +51,26 @@ export async function savePlan(input: SavePlanInput) {
       start_time: input.startTime,
       end_time: input.endTime,
       total_cost: input.totalCost,
+<<<<<<< HEAD
+=======
+      total_distance_km: input.totalDistanceKm,
+      total_travel_minutes: input.totalTravelMinutes,
+>>>>>>> 89392e5 (20일차 전체 기능 구현)
     })
     .select("id")
     .single();
 
+<<<<<<< HEAD
   if (planError || !plan) {
     return { success: false, message: planError?.message ?? "일정 저장에 실패했습니다." };
   }
 
   if (input.items.length > 0) {
+=======
+  if (planError || !plan) return { success: false, message: planError?.message ?? "일정 저장에 실패했습니다." };
+
+  if (input.items.length) {
+>>>>>>> 89392e5 (20일차 전체 기능 구현)
     const { error: itemError } = await supabase.from("plan_items").insert(
       input.items.map((item, index) => ({
         plan_id: plan.id,
@@ -57,6 +82,15 @@ export async function savePlan(input: SavePlanInput) {
         fixed_time: item.fixedTime,
         cost: item.cost,
         sort_order: index,
+<<<<<<< HEAD
+=======
+        latitude: item.latitude ?? null,
+        longitude: item.longitude ?? null,
+        travel_minutes: item.travelMinutes ?? 0,
+        distance_km: item.distanceKm ?? 0,
+        transport_mode: item.transportMode ?? "estimate",
+        metadata: item.metadata ?? {},
+>>>>>>> 89392e5 (20일차 전체 기능 구현)
       }))
     );
 
