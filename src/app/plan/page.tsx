@@ -4,9 +4,8 @@ import { enrichPlanWithTravel } from "@/lib/plan/enrichPlanWithTravel";
 import { recommendActivities } from "@/lib/recommendation/recommend";
 import { createClient } from "@/lib/supabase/server";
 import { getRegionLocation } from "@/lib/location/regionCoordinates";
-import DailyPlanMap from "@/components/map/DailyPlanMap";
 import type { PlanOption } from "@/types/plan";
-import SavePlanButton from "./SavePlanButton";
+import PlanOptionCard from "./PlanOptionCard";
 import { getWeather } from "@/lib/api/weather/getWeather";
 import { getTours } from "@/lib/api/tour/getTours";
 import { tourToActivity } from "@/lib/api/tour/tourToActivity";
@@ -110,58 +109,14 @@ export default async function PlanPage() {
 
       <div className="mt-8 space-y-10">
         {options.map((option) => (
-          <article key={option.id} className="rounded-[2rem] border border-black/5 bg-white p-6 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div><p className="text-xs font-black uppercase tracking-wider text-neutral-400">{option.style}</p><h2 className="mt-1 text-2xl font-black">{option.title}</h2><p className="mt-2 text-sm text-neutral-500">{option.description}</p></div>
-              <div className="grid grid-cols-3 gap-2 text-right text-xs sm:text-sm">
-                <div><p className="text-neutral-400">비용</p><strong>{option.plan.totalCost.toLocaleString()}원</strong></div>
-                <div><p className="text-neutral-400">이동</p><strong>{option.plan.totalTravelMinutes}분</strong></div>
-                <div><p className="text-neutral-400">거리</p><strong>{option.plan.totalDistanceKm.toFixed(1)}km</strong></div>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.1fr]">
-              <div className="space-y-3">
-                {option.plan.items.map((item, index) => (
-                  <div key={`${option.id}-${item.activity.id}-${index}`} className="rounded-2xl bg-neutral-50 p-4">
-                    {index > 0 || (item.travelFromPreviousMinutes ?? 0) > 0 ? <p className="mb-2 text-xs font-bold text-neutral-400">↓ 이동 {item.travelFromPreviousMinutes ?? 0}분 · {(item.distanceFromPreviousKm ?? 0).toFixed(1)}km</p> : null}
-                    <div className="flex items-center justify-between gap-2"><strong>{item.startTime} ~ {item.endTime}</strong><span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold">{item.fixedTime ? "시간 고정" : "조정 가능"}</span></div>
-                    <p className="mt-1 font-black">{item.activity.title}</p>
-                    <p className="mt-1 text-xs text-neutral-500">{item.activity.location ?? "장소 미정"} · {item.activity.cost.toLocaleString()}원</p>
-                  </div>
-                ))}
-              </div>
-              <DailyPlanMap items={option.plan.items} startLocation={startLocation} />
-            </div>
-
-            <div className="ml-auto mt-6 max-w-sm">
-              <SavePlanButton input={{
-                title: option.title,
-                style: option.style,
-                region: condition.region,
-                startTime: option.plan.startTime,
-                endTime: option.plan.endTime,
-                totalCost: option.plan.totalCost,
-                totalDistanceKm: option.plan.totalDistanceKm,
-                totalTravelMinutes: option.plan.totalTravelMinutes,
-                items: option.plan.items.map((item) => ({
-                  activityId: item.activity.id,
-                  title: item.activity.title,
-                  type: item.activity.type,
-                  startTime: item.startTime,
-                  endTime: item.endTime,
-                  fixedTime: item.fixedTime,
-                  cost: item.activity.cost,
-                  latitude: item.activity.coordinates?.latitude,
-                  longitude: item.activity.coordinates?.longitude,
-                  travelMinutes: item.travelFromPreviousMinutes,
-                  distanceKm: item.distanceFromPreviousKm,
-                  transportMode: item.transportMode,
-                  metadata: { ...(item.activity.metadata ?? {}), location: item.activity.location ?? null },
-                })),
-              }} />
-            </div>
-          </article>
+          <PlanOptionCard
+            key={option.id}
+            option={option}
+            candidates={recommendations.slice(0, 30)}
+            region={condition.region}
+            budget={condition.budget}
+            startLocation={startLocation}
+          />
         ))}
       </div>
     </main>
