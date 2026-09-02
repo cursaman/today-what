@@ -21,7 +21,20 @@ export default function SignupPage() {
 
     try {
       const supabase = createClient();
-      const { data, error } = await supabase.auth.signUp({ email, password });
+
+      // 운영 배포에서는 NEXT_PUBLIC_SITE_URL을 우선 사용합니다.
+      // 값이 없으면 현재 접속 중인 도메인(Vercel/localhost)을 자동으로 사용합니다.
+      const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+      const siteUrl = configuredSiteUrl || window.location.origin;
+      const emailRedirectTo = `${siteUrl}/my/preferences`;
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo,
+        },
+      });
 
       if (error) {
         setMessage(error.message);
@@ -38,7 +51,7 @@ export default function SignupPage() {
 
       // 이메일 확인이 켜진 프로젝트는 메일 인증 후 로그인이 필요합니다.
       setNeedsEmailConfirmation(true);
-      setMessage("가입 요청이 완료되었습니다. 이메일 인증 메일을 확인한 뒤 로그인해주세요.");
+      setMessage("가입 요청이 완료되었습니다. 이메일의 인증 링크를 누르면 취향 설정 화면으로 이동합니다.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "회원가입에 실패했습니다.");
     } finally {

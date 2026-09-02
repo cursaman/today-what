@@ -140,3 +140,19 @@ TOUR_API_KEY=공공데이터포털_일반인증키
 - Login safely honors an internal `next` path.
 - Header and mobile account navigation show `로그인` while signed out and `MY` while signed in.
 - Preferences save screen exposes clear next actions for `/outdoor` and `/home`.
+
+
+## Supabase 이메일 인증 리다이렉트
+
+Vercel 운영 환경에서는 다음 환경변수를 추가하세요.
+
+```env
+NEXT_PUBLIC_SITE_URL=https://today-what-pi.vercel.app
+```
+
+회원가입 시 `emailRedirectTo`가 `${NEXT_PUBLIC_SITE_URL}/my/preferences`로 설정됩니다.
+Supabase Dashboard의 **Authentication → URL Configuration**에서도 아래 주소를 허용해야 합니다.
+
+- Site URL: `https://today-what-pi.vercel.app`
+- Redirect URLs: `https://today-what-pi.vercel.app/**`
+- 로컬 개발이 필요하면 `http://localhost:3000/**`도 추가
