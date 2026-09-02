@@ -8,19 +8,25 @@ import type { UserLocation } from "@/types/location";
 import SavePlanButton from "./SavePlanButton";
 import { timeToMinutes } from "@/lib/plan/timeUtils";
 
-export default function PlanOptionCard({ option, candidates, region, budget, startLocation, preferredTransportMode = "car" }: {
+export default function PlanOptionCard({ option, candidates, region, budget, startLocation, preferredTransportMode = "car", selectedDraftIds = [] }: {
   option: PlanOption;
   candidates: Activity[];
   region: string;
   budget: number;
   startLocation: UserLocation;
   preferredTransportMode?: "car" | "transit" | "walk";
+  selectedDraftIds?: string[];
 }) {
   const [plan, setPlan] = useState(option.plan);
   const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
 
   const usedIds = useMemo(() => new Set(plan.items.map((item) => item.activity.id)), [plan.items]);
+  const selectedDraftSet = useMemo(() => new Set(selectedDraftIds), [selectedDraftIds]);
+  const reflectedDraftCount = useMemo(
+    () => plan.items.filter((item) => selectedDraftSet.has(item.activity.id)).length,
+    [plan.items, selectedDraftSet],
+  );
 
   function replacementCandidates(index: number) {
     const current = plan.items[index];
@@ -70,6 +76,17 @@ export default function PlanOptionCard({ option, candidates, region, budget, sta
           <div><p className="text-neutral-400">거리</p><strong>{plan.totalDistanceKm.toFixed(1)}km</strong></div>
         </div>
       </div>
+
+      {selectedDraftIds.length > 0 ? (
+        <div className="mt-5 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-800">
+          선택 후보 {selectedDraftIds.length}개 중 {reflectedDraftCount}개 반영
+          {reflectedDraftCount < selectedDraftIds.length ? (
+            <span className="ml-2 font-medium text-emerald-700/80">시간·예산·이동 조건 때문에 일부 후보는 제외될 수 있습니다.</span>
+          ) : null}
+        </div>
+      ) : (
+        <div className="mt-5 rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-600">직접 선택한 후보 없이 취향·날씨 기준으로 자동 구성한 일정입니다.</div>
+      )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.1fr]">
         <div className="space-y-3">

@@ -156,3 +156,9 @@ Supabase Dashboard의 **Authentication → URL Configuration**에서도 아래 �
 - Site URL: `https://today-what-pi.vercel.app`
 - Redirect URLs: `https://today-what-pi.vercel.app/**`
 - 로컬 개발이 필요하면 `http://localhost:3000/**`도 추가
+
+
+## 일정 후보 계정 분리
+- 일정 후보 쿠키는 로그인 사용자별로 분리됩니다.
+- 신규 회원가입 시 게스트/구버전 후보 쿠키를 초기화합니다.
+- /plan에서 선택 후보 목록과 A/B/C별 반영 개수를 확인할 수 있습니다.

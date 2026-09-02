@@ -28,6 +28,10 @@ export default function SignupPage() {
       const siteUrl = configuredSiteUrl || window.location.origin;
       const emailRedirectTo = `${siteUrl}/my/preferences`;
 
+      // 같은 브라우저에서 이전 사용자가 남긴 일정 후보가 새 계정에 보이지 않도록
+      // 회원가입 시작 시 게스트/구버전 후보 쿠키를 정리합니다.
+      await fetch("/api/plan-draft?scope=all", { method: "DELETE" });
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
