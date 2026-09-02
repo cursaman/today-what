@@ -7,6 +7,15 @@ import { minutesToTime, timeToMinutes } from "./timeUtils";
 
 const ARRIVAL_BUFFER = 10;
 const MAX_AUTO_TRAVEL: Record<PlanStyle, number> = { outdoor: 60, balanced: 40, relaxed: 25 };
+const AUTO_POLICY: Record<PlanStyle, {
+  maxItems: number;
+  restMinutes: number;
+  groupLimits: Record<string, number>;
+}> = {
+  outdoor: { maxItems: 7, restMinutes: 10, groupLimits: { screen: 2, sport: 1, tour: 3, activity: 2 } },
+  balanced: { maxItems: 6, restMinutes: 20, groupLimits: { screen: 2, sport: 1, tour: 2, activity: 2 } },
+  relaxed: { maxItems: 4, restMinutes: 45, groupLimits: { screen: 1, sport: 1, tour: 1, activity: 2 } },
+};
 
 function isManual(activity: Activity) {
   return activity.metadata?.manuallySelected === true;
@@ -20,6 +29,11 @@ function score(activity: Activity) {
   return typeof (activity as Activity & { score?: number }).score === "number"
     ? (activity as Activity & { score: number }).score
     : 0;
+}
+
+function activityGroup(activity: Activity) {
+  if (activity.type === "ott" || activity.type === "movie") return "screen";
+  return activity.type;
 }
 
 export async function createTravelAwarePlan(
@@ -131,7 +145,20 @@ export async function createTravelAwarePlan(
   const automatic = activities.filter((activity) => !isManual(activity))
     .sort((a, b) => score(b) - score(a))
     .slice(0, 20);
-  for (const candidate of automatic) await tryPlace(candidate, false);
+  const policy = AUTO_POLICY[style];
+  const groupCounts = new Map<string, number>();
+  let automaticCount = 0;
+  for (const candidate of automatic) {
+    if (automaticCount >= policy.maxItems) break;
+    const group = activityGroup(candidate);
+    const limit = policy.groupLimits[group] ?? 1;
+    if ((groupCounts.get(group) ?? 0) >= limit) continue;
+    if (await tryPlace(candidate, false)) {
+      automaticCount += 1;
+      groupCounts.set(group, (groupCounts.get(group) ?? 0) + 1);
+      cursor = Math.min(dayEnd, cursor + policy.restMinutes);
+    }
+  }
 
   return {
     plan: {
