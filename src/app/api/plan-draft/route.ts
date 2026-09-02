@@ -7,7 +7,7 @@ import {
   getPlanDraftCookieName,
 } from "@/lib/plan/draftCookie";
 
-const MAX_ITEMS = 5;
+const MAX_ITEMS = 10;
 
 type DraftActivity = Pick<
   Activity,
@@ -62,7 +62,7 @@ function writeDraft(response: NextResponse, cookieName: string, items: DraftActi
 export async function GET(request: NextRequest) {
   const cookieName = await currentCookieName();
   const items = parseDraft(request.cookies.get(cookieName)?.value);
-  return NextResponse.json({ success: true, count: items.length, items });
+  return NextResponse.json({ success: true, count: items.length, items, maxItems: MAX_ITEMS });
 }
 
 export async function POST(request: NextRequest) {
@@ -79,6 +79,8 @@ export async function POST(request: NextRequest) {
   const response = NextResponse.json({
     success: true,
     count: items.length,
+    items,
+    maxItems: MAX_ITEMS,
     message: `일정 후보에 추가했습니다. 현재 ${items.length}개가 선택되어 있습니다.`,
   });
   writeDraft(response, cookieName, items);
@@ -91,7 +93,7 @@ export async function DELETE(request: NextRequest) {
   const cookieName = await currentCookieName();
 
   if (scope === "all") {
-    const response = NextResponse.json({ success: true, count: 0, message: "일정 후보를 모두 비웠습니다." });
+    const response = NextResponse.json({ success: true, count: 0, items: [], maxItems: MAX_ITEMS, message: "일정 후보를 모두 비웠습니다." });
     response.cookies.set(cookieName, "", cookieOptions(0));
     response.cookies.set(GUEST_PLAN_DRAFT_COOKIE_NAME, "", cookieOptions(0));
     response.cookies.set(LEGACY_PLAN_DRAFT_COOKIE_NAME, "", cookieOptions(0));
@@ -100,7 +102,7 @@ export async function DELETE(request: NextRequest) {
 
   const existing = parseDraft(request.cookies.get(cookieName)?.value);
   const items = id ? existing.filter((item) => item.id !== id) : [];
-  const response = NextResponse.json({ success: true, count: items.length });
+  const response = NextResponse.json({ success: true, count: items.length, items, maxItems: MAX_ITEMS });
   writeDraft(response, cookieName, items);
   return response;
 }

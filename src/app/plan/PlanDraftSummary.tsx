@@ -7,6 +7,8 @@ type DraftItem = { id: string; title: string; type: string; location?: string };
 
 export default function PlanDraftSummary({ items }: { items: DraftItem[] }) {
   const router = useRouter();
+  const outdoorCount = items.filter((item) => item.type !== "ott" && item.type !== "movie").length;
+  const homeCount = items.length - outdoorCount;
   const [clearing, setClearing] = useState(false);
 
   async function clearAll() {
@@ -37,7 +39,7 @@ export default function PlanDraftSummary({ items }: { items: DraftItem[] }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-black text-emerald-900">내가 선택한 일정 후보 {items.length}개</p>
-          <p className="mt-1 text-xs text-emerald-800/70">A/B/C 일정은 이 후보들을 우선 반영하고, 시간·예산·이동 조건에 따라 일부가 빠질 수 있습니다.</p>
+          <p className="mt-1 text-xs text-emerald-800/70">밖에서 {outdoorCount}개 · 집에서 {homeCount}개 · 합계 {items.length}개입니다. A/B/C 일정은 이 후보들을 우선 반영하고, 시간·예산·이동 조건에 따라 일부가 빠질 수 있습니다.</p>
         </div>
         <button type="button" onClick={clearAll} disabled={clearing} className="rounded-xl border border-emerald-900/15 bg-white px-3 py-2 text-xs font-black text-emerald-900 disabled:opacity-50">
           {clearing ? "비우는 중..." : "후보 전체 비우기"}

@@ -107,8 +107,9 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
       alert(result.message ?? "일정 추가에 실패했습니다.");
       return;
     }
-    setAddedIds((prev) => new Set(prev).add(activity.id));
-    setDraftCount(result.count ?? 0);
+    const serverItems: Activity[] = Array.isArray(result.items) ? result.items : [];
+    setAddedIds(new Set(serverItems.map((item) => item.id)));
+    setDraftCount(Number(result.count ?? serverItems.length));
   }
 
   return (
@@ -118,9 +119,10 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
           <p className="text-sm font-black tracking-wider text-emerald-700">OUTDOOR · LIVE TOURAPI</p>
           <h1 className="mt-1 text-4xl font-black">밖에서 뭐하지?</h1>
           <p className="mt-3 text-neutral-600">지역과 오늘 날씨를 기준으로 실제 관광·전시·행사·체험 정보를 추천합니다.</p>
+          <p className="mt-2 text-xs font-bold text-emerald-700">밖에서 + 집에서 선택한 후보를 합쳐 최대 10개까지 일정에 담을 수 있습니다.</p>
         </div>
         <Link href="/plan" className="rounded-full bg-neutral-900 px-5 py-3 text-sm font-black text-white">
-          일정 후보 {draftCount}개 보기 →
+          전체 일정 후보 {draftCount}개 보기 →
         </Link>
       </div>
 

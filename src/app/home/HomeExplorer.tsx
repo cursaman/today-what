@@ -98,9 +98,10 @@ export default function HomeExplorer({ initialServices }: { initialServices: str
       });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.message || "일정 추가에 실패했습니다.");
-      setDraftIds((current) => new Set([...current, activity.id]));
-      setDraftCount(Number(data.count ?? 0));
-      setMessage(`‘${activity.title}’을 일정 후보에 추가했습니다.`);
+      const serverItems: Activity[] = Array.isArray(data.items) ? data.items : [];
+      setDraftIds(new Set(serverItems.map((item) => item.id)));
+      setDraftCount(Number(data.count ?? serverItems.length));
+      setMessage(`‘${activity.title}’을 일정 후보에 추가했습니다. 밖에서/집에서 후보를 합쳐 현재 ${Number(data.count ?? serverItems.length)}개입니다.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "일정 추가에 실패했습니다.");
     }
@@ -114,11 +115,9 @@ export default function HomeExplorer({ initialServices }: { initialServices: str
             <p className="text-xs font-bold text-white/50">MY OTT FILTER</p>
             <h2 className="mt-1 text-xl font-black">내가 이용하는 OTT만 보기</h2>
           </div>
-          {draftCount > 0 ? (
-            <a href="/plan" className="rounded-full bg-white px-4 py-2 text-sm font-black text-neutral-900">
-              일정 후보 {draftCount}개 보기 →
-            </a>
-          ) : null}
+          <a href="/plan" className="rounded-full bg-white px-4 py-2 text-sm font-black text-neutral-900">
+            전체 일정 후보 {draftCount}개 보기 →
+          </a>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           {SERVICES.map((service) => (
@@ -137,6 +136,7 @@ export default function HomeExplorer({ initialServices }: { initialServices: str
         <p className="mt-3 text-xs text-white/50">
           로그인 사용자는 MY에 저장한 OTT가 기본 선택됩니다. 선택을 바꾸면 즉시 한국 제공작을 다시 조회합니다.
         </p>
+        <p className="mt-2 text-xs font-bold text-emerald-300">밖에서 선택한 후보와 집에서 선택한 후보는 하나로 합산됩니다. 최대 10개까지 선택할 수 있습니다.</p>
       </section>
 
       {message ? (
