@@ -21,7 +21,8 @@ async function routeBetween(from: Coordinates, item: PlanItem) {
 export async function enrichPlanWithTravel(
   plan: DailyPlan,
   style: PlanStyle,
-  startLocation: UserLocation
+  startLocation: UserLocation,
+  preferredTransportMode: "car" | "transit" | "walk" = "car"
 ): Promise<DailyPlan> {
   let previousCoordinates: Coordinates = {
     latitude: startLocation.latitude,
@@ -40,7 +41,8 @@ export async function enrichPlanWithTravel(
     const item = sorted[index];
     const route = await routeBetween(previousCoordinates, item);
 
-    if (!item.fixedTime && route.durationMinutes > MAX_TRAVEL[style]) continue;
+    const transportFactor = preferredTransportMode === "walk" ? 0.65 : preferredTransportMode === "transit" ? 0.85 : 1;
+    if (!item.fixedTime && route.durationMinutes > MAX_TRAVEL[style] * transportFactor) continue;
 
     const earliestArrival = cursor + route.durationMinutes;
 

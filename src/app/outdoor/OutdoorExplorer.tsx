@@ -35,8 +35,8 @@ const CATEGORIES = [
   { id: "28", label: "레저·체험" },
 ];
 
-export default function OutdoorExplorer() {
-  const [region, setRegion] = useState("부산");
+export default function OutdoorExplorer({ initialRegion = "부산", personalized = false }: { initialRegion?: string; personalized?: boolean }) {
+  const [region, setRegion] = useState(initialRegion);
   const [category, setCategory] = useState("all");
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);

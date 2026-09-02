@@ -8,12 +8,13 @@ import type { UserLocation } from "@/types/location";
 import SavePlanButton from "./SavePlanButton";
 import { timeToMinutes } from "@/lib/plan/timeUtils";
 
-export default function PlanOptionCard({ option, candidates, region, budget, startLocation }: {
+export default function PlanOptionCard({ option, candidates, region, budget, startLocation, preferredTransportMode = "car" }: {
   option: PlanOption;
   candidates: Activity[];
   region: string;
   budget: number;
   startLocation: UserLocation;
+  preferredTransportMode?: "car" | "transit" | "walk";
 }) {
   const [plan, setPlan] = useState(option.plan);
   const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
@@ -49,7 +50,7 @@ export default function PlanOptionCard({ option, candidates, region, budget, sta
       const response = await fetch("/api/plan/recalculate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: provisional, style: option.style, startLocation }),
+        body: JSON.stringify({ plan: provisional, style: option.style, startLocation, preferredTransportMode }),
       });
       if (response.ok) {
         const data = await response.json();

@@ -1,3 +1,5 @@
+import type { ActivityPreferenceMode, UserTransportMode } from "./preferences";
+
 export interface RecommendationCondition {
   region: string;
   startTime: string;
@@ -7,4 +9,7 @@ export interface RecommendationCondition {
   companion: string;
   interests: string[];
   favoriteTeams?: string[];
+  preferredActivityMode?: ActivityPreferenceMode;
+  transportMode?: UserTransportMode;
+  ottServices?: string[];
 }

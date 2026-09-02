@@ -73,6 +73,9 @@ export default async function PlanPage() {
     companion: typeof preferences?.companion_type === "string" ? preferences.companion_type : "alone",
     interests,
     favoriteTeams,
+    preferredActivityMode: (preferences?.activity_mode === "indoor" || preferences?.activity_mode === "outdoor") ? preferences.activity_mode : "balanced",
+    transportMode: (preferences?.transport_mode === "walk" || preferences?.transport_mode === "transit") ? preferences.transport_mode : "car",
+    ottServices,
   };
 
   const baseActivities = sampleActivities.filter((activity) =>
@@ -90,7 +93,7 @@ export default async function PlanPage() {
   const baseOptions = createPlanOptions(recommendations, condition.startTime, condition.endTime, condition.budget);
   const options: PlanOption[] = await Promise.all(baseOptions.map(async (option) => ({
     ...option,
-    plan: await enrichPlanWithTravel(option.plan, option.style, startLocation),
+    plan: await enrichPlanWithTravel(option.plan, option.style, startLocation, condition.transportMode),
   })));
 
   return (
@@ -104,7 +107,7 @@ export default async function PlanPage() {
         <div><p className="text-xs text-white/50">지역</p><strong>{condition.region}</strong></div>
         <div><p className="text-xs text-white/50">시간</p><strong>{condition.startTime}~{condition.endTime}</strong></div>
         <div><p className="text-xs text-white/50">날씨</p><strong>{weather.condition} {Math.round(weather.temperature)}℃</strong></div>
-        <div><p className="text-xs text-white/50">예산</p><strong>{condition.budget.toLocaleString()}원</strong></div>
+        <div><p className="text-xs text-white/50">예산</p><strong>{condition.budget.toLocaleString()}원</strong><p className="mt-1 text-[11px] text-white/50">{condition.preferredActivityMode === "indoor" ? "실내 선호" : condition.preferredActivityMode === "outdoor" ? "실외 선호" : "균형 선호"} · {condition.transportMode === "walk" ? "도보" : condition.transportMode === "transit" ? "대중교통" : "자동차"}</p></div>
       </section>
 
       <div className="mt-8 space-y-10">
@@ -116,6 +119,7 @@ export default async function PlanPage() {
             region={condition.region}
             budget={condition.budget}
             startLocation={startLocation}
+            preferredTransportMode={condition.transportMode}
           />
         ))}
       </div>

@@ -5,6 +5,7 @@ import type { TourCategory } from "@/lib/api/tour/types";
 import { getRegionLocation } from "@/lib/location/regionCoordinates";
 import { getWeather } from "@/lib/api/weather/getWeather";
 import { calculateDistanceKm } from "@/lib/location/calculateDistance";
+import { createClient } from "@/lib/supabase/server";
 
 const validCategories = new Set(TOUR_CATEGORIES.map((item) => item.id));
 
@@ -13,6 +14,17 @@ export async function GET(request: NextRequest) {
   const categoryParam = request.nextUrl.searchParams.get("category") || "all";
   const category = (validCategories.has(categoryParam as TourCategory) ? categoryParam : "all") as TourCategory;
   const center = getRegionLocation(region);
+  let interests: string[] = [];
+  let activityMode = "balanced";
+  const supabase = await createClient();
+  if (supabase) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: pref } = await supabase.from("user_preferences").select("interests,activity_mode").eq("user_id", user.id).maybeSingle();
+      interests = Array.isArray(pref?.interests) ? pref.interests.filter((v): v is string => typeof v === "string") : [];
+      activityMode = typeof pref?.activity_mode === "string" ? pref.activity_mode : "balanced";
+    }
+  }
 
   const [tourItems, weather] = await Promise.all([
     getTours(region, category, 24),
@@ -50,6 +62,11 @@ export async function GET(request: NextRequest) {
           reasons.push("오늘 이동하기 부담 적은 거리");
         }
       }
+
+      const matchedInterests = activity.interests.filter((interest) => interests.includes(interest)).length;
+      if (matchedInterests > 0) { score += matchedInterests * 15; reasons.push("MY 관심사와 잘 맞는 활동"); }
+      if (activityMode === "indoor") { score += activity.indoor ? 20 : -10; }
+      if (activityMode === "outdoor") { score += activity.indoor ? -5 : 20; }
 
       const typeLabel = String(activity.metadata?.contentTypeLabel ?? "관광");
       reasons.push(`${typeLabel} 추천 후보`);
