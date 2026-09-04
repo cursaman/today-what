@@ -10,6 +10,7 @@ vi.mock("@/lib/transport/getTravelInfo", () => ({
 import { getTravelInfo } from "@/lib/transport/getTravelInfo";
 import { scoreActivity } from "@/lib/recommendation/scoreActivity";
 import { createTravelAwarePlan } from "./createTravelAwarePlan";
+import { decodePlanDraft, encodePlanDraft } from "./draftCodec";
 
 const mockedTravel = vi.mocked(getTravelInfo);
 const origin = { latitude: 35, longitude: 129, region: "부산" };
@@ -139,6 +140,35 @@ describe("createTravelAwarePlan", () => {
     for (let index = 1; index < plan.items.length; index += 1) {
       expect(timeToMinutes(plan.items[index].startTime)).toBeGreaterThanOrEqual(timeToMinutes(plan.items[index - 1].endTime));
     }
+  });
+
+  it("필드 골프 고정시간에는 45분 도착 여유를 적용한다", async () => {
+    const field = activity({
+      id: "reserved-field", title: "예약 필드 골프", fixedTime: true, startAt: "07:00",
+      coordinates: { latitude: 36, longitude: 129 }, interests: ["golf", "golf-field"],
+      metadata: { manuallySelected: true, golfType: "field", arrivalBufferMinutes: 45 },
+    });
+
+    const result = await createTravelAwarePlan([field], "06:00", "12:00", 500000, "outdoor", origin, "car");
+
+    expect(result.plan.items).toHaveLength(0);
+    expect(result.draftFailures[0]?.reason).toContain("도착");
+  });
+});
+
+describe("골프 후보 저장", () => {
+  it("예약 시작시간과 도착 여유시간을 쿠키 데이터에 보존한다", () => {
+    const reserved = activity({
+      id: "reserved-screen", title: "예약 스크린골프", fixedTime: true, startAt: "19:00",
+      interests: ["golf", "golf-screen"], metadata: { golfType: "screen", reservationStatus: "scheduled", arrivalBufferMinutes: 15 },
+    });
+
+    const encoded = encodePlanDraft([reserved]);
+    const decoded = decodePlanDraft(encoded.encoded)[0];
+
+    expect(decoded.startAt).toBe("19:00");
+    expect(decoded.fixedTime).toBe(true);
+    expect(decoded.metadata).toMatchObject({ golfType: "screen", reservationStatus: "scheduled", arrivalBufferMinutes: 15 });
   });
 });
 

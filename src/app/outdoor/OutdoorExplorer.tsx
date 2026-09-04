@@ -47,6 +47,7 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [draftCount, setDraftCount] = useState(0);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [reservationTimes, setReservationTimes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void Promise.all([fetch("/api/plan-draft").then((res) => res.json()), fetch("/api/favorites").then((res) => res.json())])
@@ -54,6 +55,9 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
         if (Array.isArray(drafts.items)) {
           setAddedIds(new Set(drafts.items.map((item: Activity) => item.id)));
           setDraftCount(drafts.items.length);
+          setReservationTimes(Object.fromEntries(drafts.items
+            .filter((item: Activity) => item.interests.includes("golf") && typeof item.startAt === "string")
+            .map((item: Activity) => [item.id, item.startAt!] as const)));
         }
         const favoriteList: FavoriteItem[] = Array.isArray(favorites.items) ? favorites.items : [];
         setFavoriteIds(new Set(favoriteList.map((item) => `${item.contentType}:${item.contentId}`)));
@@ -88,6 +92,9 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
   }, [category, data, golfType]);
 
   async function togglePlan(activity: OutdoorActivity, added: boolean) {
+    const reservationTime = reservationTimes[activity.id] ?? "";
+    const golfType = activity.metadata?.golfType;
+    const hasReservationTime = (golfType === "field" || golfType === "screen") && /^([01]\d|2[0-3]):[0-5]\d$/.test(reservationTime);
     const response = await fetch(
       added ? `/api/plan-draft?id=${encodeURIComponent(activity.id)}` : "/api/plan-draft",
       added
@@ -102,14 +109,19 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
                 title: activity.title,
                 description: activity.description,
                 durationMinutes: activity.durationMinutes,
-                fixedTime: activity.fixedTime,
                 indoor: activity.indoor,
                 cost: activity.cost,
                 location: activity.location,
                 coordinates: activity.coordinates,
                 interests: activity.interests,
                 source: activity.source,
-                metadata: activity.metadata,
+                startAt: hasReservationTime ? reservationTime : activity.startAt,
+                fixedTime: hasReservationTime ? true : activity.fixedTime,
+                metadata: {
+                  ...(activity.metadata ?? {}),
+                  reservationStatus: hasReservationTime ? "scheduled" : "required",
+                  arrivalBufferMinutes: golfType === "field" ? 45 : golfType === "screen" ? 15 : activity.metadata?.arrivalBufferMinutes,
+                },
               },
             }),
           }
@@ -220,6 +232,8 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
           const categoryLabel = String(activity.metadata?.contentTypeLabel ?? "관광");
           const added = addedIds.has(activity.id);
           const favorite = favoriteIds.has(`tour:${activity.id}`);
+          const activityGolfType = activity.metadata?.golfType;
+          const isGolf = activityGolfType === "field" || activityGolfType === "screen";
 
           return (
             <article key={activity.id} className="overflow-hidden rounded-[1.75rem] border border-black/5 bg-white shadow-sm">
@@ -253,9 +267,17 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
                   </ul>
                 </div>
 
+                {isGolf ? (
+                  <label className="mt-4 block rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
+                    <span className="block text-xs font-black text-emerald-900">{activityGolfType === "field" ? "티타임" : "예약 시작시간"} · 선택사항</span>
+                    <input type="time" value={reservationTimes[activity.id] ?? ""} onChange={(event) => setReservationTimes((current) => ({ ...current, [activity.id]: event.target.value }))} disabled={added} className="mt-2 w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 font-bold disabled:opacity-60" />
+                    <span className="mt-2 block text-[11px] leading-5 text-emerald-800/80">{activityGolfType === "field" ? "입력하면 45분 전 도착을 기준으로 고정 일정이 됩니다." : "입력하면 15분 전 도착을 기준으로 고정 일정이 됩니다."}</span>
+                  </label>
+                ) : null}
+
                 <div className="mt-4 grid grid-cols-[auto_1fr] gap-2">
                   <button type="button" onClick={() => void toggleFavorite(activity)} aria-pressed={favorite} className={`rounded-2xl border px-4 py-3 text-sm font-black ${favorite ? "border-rose-200 bg-rose-50 text-rose-600" : "bg-white"}`}>{favorite ? "♥ 찜됨" : "♡ 찜"}</button>
-                  <button type="button" onClick={() => void togglePlan(activity, added)} className={`rounded-2xl px-4 py-3 text-sm font-black transition ${added ? "bg-emerald-100 text-emerald-700 hover:bg-rose-50 hover:text-rose-700" : "bg-neutral-900 text-white hover:bg-neutral-700"}`} aria-pressed={added}>{added ? "✓ 추가됨 · 취소" : "+ 일정에 추가"}</button>
+                  <button type="button" onClick={() => void togglePlan(activity, added)} className={`rounded-2xl px-4 py-3 text-sm font-black transition ${added ? "bg-emerald-100 text-emerald-700 hover:bg-rose-50 hover:text-rose-700" : "bg-neutral-900 text-white hover:bg-neutral-700"}`} aria-pressed={added}>{added ? "✓ 추가됨 · 취소" : isGolf && reservationTimes[activity.id] ? "+ 예약시간으로 추가" : "+ 일정에 추가"}</button>
                 </div>
               </div>
             </article>

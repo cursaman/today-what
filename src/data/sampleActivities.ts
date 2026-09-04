@@ -103,7 +103,7 @@ export const sampleActivities: Activity[] = [
     coordinates: { latitude: 35.2671, longitude: 129.2225 },
     interests: ["sports", "activity", "golf", "golf-field"],
     source: "sample",
-    metadata: { region: "부산", primaryCategory: "sports-leisure", secondaryCategory: "golf", golfType: "field", reservationRequired: true, contentTypeLabel: "필드 골프" },
+    metadata: { region: "부산", primaryCategory: "sports-leisure", secondaryCategory: "golf", golfType: "field", reservationRequired: true, arrivalBufferMinutes: 45, contentTypeLabel: "필드 골프" },
   },
   {
     id: "golf-screen-busan",
@@ -118,7 +118,7 @@ export const sampleActivities: Activity[] = [
     coordinates: { latitude: 35.1578, longitude: 129.0592 },
     interests: ["sports", "activity", "golf", "golf-screen"],
     source: "sample",
-    metadata: { region: "부산", primaryCategory: "sports-leisure", secondaryCategory: "golf", golfType: "screen", reservationRequired: true, contentTypeLabel: "스크린골프" },
+    metadata: { region: "부산", primaryCategory: "sports-leisure", secondaryCategory: "golf", golfType: "screen", reservationRequired: true, arrivalBufferMinutes: 15, contentTypeLabel: "스크린골프" },
   },
   {
     id: "meal-lunch",

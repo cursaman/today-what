@@ -50,6 +50,11 @@ function scheduleWindow(activity: Activity) {
   return endMinutes > startMinutes ? { start: startMinutes, end: endMinutes } : null;
 }
 
+function arrivalBufferMinutes(activity: Activity) {
+  const configured = Number(activity.metadata?.arrivalBufferMinutes);
+  return Number.isFinite(configured) ? Math.max(0, Math.min(configured, 120)) : ARRIVAL_BUFFER;
+}
+
 export async function createTravelAwarePlan(
   activities: Activity[],
   startTime: string,
@@ -115,7 +120,7 @@ export async function createTravelAwarePlan(
         if (manual) draftFailures.push({ id: activity.id, title: activity.title, reason: "선택한 운영 시간이 일정 범위 밖입니다." });
         return false;
       }
-      if (actualStart + ARRIVAL_BUFFER > fixedStart) {
+      if (actualStart + arrivalBufferMinutes(activity) > fixedStart) {
         if (manual) draftFailures.push({ id: activity.id, title: activity.title, reason: "이동시간 때문에 고정 시작 시간에 도착할 수 없습니다." });
         return false;
       }
@@ -228,7 +233,7 @@ export async function createTravelAwarePlan(
       const candidateEnd = cursor + toCandidate.durationMinutes + candidate.durationMinutes + policy.restMinutes;
       const candidatePosition = isHome(candidate) ? origin : (candidate.coordinates ?? previous);
       const toFixed = await route(candidatePosition, anchor);
-      if (candidateEnd + toFixed.durationMinutes + ARRIVAL_BUFFER <= latestAnchorStart) {
+      if (candidateEnd + toFixed.durationMinutes + arrivalBufferMinutes(anchor) <= latestAnchorStart) {
         if (await placeAutomatic(candidate)) automaticFlexible.splice(index, 1);
         else index += 1;
       } else index += 1;

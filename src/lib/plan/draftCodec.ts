@@ -12,7 +12,7 @@ type CompactActivity = [
 
 function compactMetadata(metadata: Record<string, unknown> | undefined) {
   if (!metadata) return undefined;
-  const allowed = ["manuallySelected", "providers", "homeTeam", "awayTeam", "contentTypeLabel"];
+  const allowed = ["manuallySelected", "providers", "homeTeam", "awayTeam", "contentTypeLabel", "golfType", "reservationRequired", "reservationStatus", "arrivalBufferMinutes"];
   return Object.fromEntries(allowed.filter((key) => key in metadata).map((key) => [key, metadata[key]]));
 }
 

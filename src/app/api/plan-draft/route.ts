@@ -24,6 +24,8 @@ type DraftActivity = Pick<
   | "coordinates"
   | "interests"
   | "source"
+  | "startAt"
+  | "endAt"
   | "metadata"
 >;
 
@@ -69,6 +71,9 @@ export async function POST(request: NextRequest) {
   const cookieName = await currentCookieName();
   if (!Number.isFinite(activity.durationMinutes) || activity.durationMinutes <= 0 || activity.durationMinutes > 1440 || !Number.isFinite(activity.cost) || activity.cost < 0) {
     return NextResponse.json({ success: false, message: "활동 시간 또는 비용이 올바르지 않습니다." }, { status: 400 });
+  }
+  if (activity.fixedTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(activity.startAt ?? "")) {
+    return NextResponse.json({ success: false, message: "고정 활동의 시작시간이 올바르지 않습니다." }, { status: 400 });
   }
   const existing = decodePlanDraft(request.cookies.get(cookieName)?.value);
   const withoutDuplicate = existing.filter((item) => item.id !== activity.id);
