@@ -37,7 +37,17 @@ function score(activity: Activity) {
 function activityGroup(activity: Activity) {
   if (activity.type === "ott" || activity.type === "movie") return "screen";
   if (activity.interests.includes("golf")) return "golf";
+  if (typeof activity.metadata?.mealType === "string") return `meal-${activity.metadata.mealType}`;
   return activity.type;
+}
+
+function scheduleWindow(activity: Activity) {
+  const start = activity.metadata?.preferredStart;
+  const end = activity.metadata?.preferredEnd;
+  if (typeof start !== "string" || typeof end !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(start) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(end)) return null;
+  const startMinutes = timeToMinutes(start);
+  const endMinutes = timeToMinutes(end);
+  return endMinutes > startMinutes ? { start: startMinutes, end: endMinutes } : null;
 }
 
 export async function createTravelAwarePlan(
@@ -61,6 +71,7 @@ export async function createTravelAwarePlan(
   const items: PlanItem[] = [];
   const draftFailures: DraftFailure[] = [];
   const routeCache = sharedRouteCache ?? new Map<string, Promise<TransportRoute>>();
+  const policy = AUTO_POLICY[style];
 
   function samePosition(a: Coordinates, b: Coordinates) {
     return Math.abs(a.latitude - b.latitude) < 0.00001 && Math.abs(a.longitude - b.longitude) < 0.00001;
@@ -95,6 +106,7 @@ export async function createTravelAwarePlan(
     const travel = await route(previous, activity);
     if (!manual && !activity.fixedTime && travel.durationMinutes > MAX_AUTO_TRAVEL[style]) return false;
     let actualStart = cursor + travel.durationMinutes;
+    const window = scheduleWindow(activity);
 
     if (activity.fixedTime && activity.startAt) {
       const fixedStart = timeToMinutes(activity.startAt);
@@ -108,13 +120,15 @@ export async function createTravelAwarePlan(
         return false;
       }
       actualStart = fixedStart;
+    } else if (window) {
+      actualStart = Math.max(actualStart, window.start);
     }
 
     const actualEnd = actualStart + activity.durationMinutes;
     const activityPosition = isHome(activity) ? origin : (activity.coordinates ?? previous);
     const returnTrip = await routeCoordinates(activityPosition, origin);
-    if (actualEnd + returnTrip.durationMinutes > dayEnd) {
-      if (manual) draftFailures.push({ id: activity.id, title: activity.title, reason: "이동시간을 포함하면 종료 시간 안에 끝낼 수 없습니다." });
+    if ((window && actualEnd > window.end) || actualEnd + returnTrip.durationMinutes > dayEnd) {
+      if (manual) draftFailures.push({ id: activity.id, title: activity.title, reason: window && actualEnd > window.end ? "권장 활동 시간대 안에 배치할 수 없습니다." : "이동시간을 포함하면 종료 시간 안에 끝낼 수 없습니다." });
       return false;
     }
 
@@ -145,28 +159,33 @@ export async function createTravelAwarePlan(
     for (let index = 0; index < manualFlexible.length;) {
       const candidate = manualFlexible[index];
       const toCandidate = await route(previous, candidate);
-      const candidateEnd = cursor + toCandidate.durationMinutes + candidate.durationMinutes;
+      const candidateEnd = cursor + toCandidate.durationMinutes + candidate.durationMinutes + policy.restMinutes;
       const candidatePosition = isHome(candidate) ? origin : (candidate.coordinates ?? previous);
       const toFixed = await route(candidatePosition, fixed);
       if (candidateEnd + toFixed.durationMinutes + ARRIVAL_BUFFER <= timeToMinutes(fixed.startAt!)) {
-        await tryPlace(candidate, true);
+        if (await tryPlace(candidate, true)) cursor = Math.min(dayEnd, cursor + policy.restMinutes);
         manualFlexible.splice(index, 1);
       } else {
         index += 1;
       }
     }
-    await tryPlace(fixed, true);
+    if (await tryPlace(fixed, true)) cursor = Math.min(dayEnd, cursor + policy.restMinutes);
   }
 
-  for (const candidate of manualFlexible) await tryPlace(candidate, true);
+  for (const candidate of manualFlexible) {
+    if (await tryPlace(candidate, true)) cursor = Math.min(dayEnd, cursor + policy.restMinutes);
+  }
 
   // 직접 선택 후보가 자리를 잡은 후에만 자동 추천으로 남은 시간을 채웁니다.
   const automatic = activities.filter((activity) => !isManual(activity)).slice(0, 30);
-  const automaticFixed = automatic.filter((activity) => activity.fixedTime && activity.startAt)
-    .sort((a, b) => timeToMinutes(a.startAt!) - timeToMinutes(b.startAt!));
-  const automaticFlexible = automatic.filter((activity) => !activity.fixedTime || !activity.startAt)
+  const automaticAnchors = automatic.filter((activity) => (activity.fixedTime && activity.startAt) || scheduleWindow(activity))
+    .sort((a, b) => {
+      const aStart = a.fixedTime && a.startAt ? timeToMinutes(a.startAt) : scheduleWindow(a)!.start;
+      const bStart = b.fixedTime && b.startAt ? timeToMinutes(b.startAt) : scheduleWindow(b)!.start;
+      return aStart - bStart;
+    });
+  const automaticFlexible = automatic.filter((activity) => !((activity.fixedTime && activity.startAt) || scheduleWindow(activity)))
     .sort((a, b) => score(b) - score(a));
-  const policy = AUTO_POLICY[style];
   const groupCounts = new Map<string, number>();
   let automaticCount = 0;
 
@@ -190,12 +209,16 @@ export async function createTravelAwarePlan(
   }
 
   // 시간 고정 활동을 먼저 '예약'하고, 그 전의 빈 구간만 자유 활동으로 채웁니다.
-  for (const fixed of automaticFixed) {
-    for (let index = 0; index < automaticFlexible.length && allowed(fixed);) {
+  for (const anchor of automaticAnchors) {
+    const anchorWindow = scheduleWindow(anchor);
+    const latestAnchorStart = anchor.fixedTime && anchor.startAt
+      ? timeToMinutes(anchor.startAt)
+      : anchorWindow!.end - anchor.durationMinutes;
+    for (let index = 0; index < automaticFlexible.length && allowed(anchor);) {
       const candidate = automaticFlexible[index];
       if (!allowed(candidate)) { index += 1; continue; }
       const candidateGroup = activityGroup(candidate);
-      const fixedGroup = activityGroup(fixed);
+      const fixedGroup = activityGroup(anchor);
       if (automaticCount + 1 >= policy.maxItems ||
           (candidateGroup === fixedGroup && (groupCounts.get(candidateGroup) ?? 0) + 1 >= (policy.groupLimits[candidateGroup] ?? 1))) {
         index += 1;
@@ -204,13 +227,13 @@ export async function createTravelAwarePlan(
       const toCandidate = await route(previous, candidate);
       const candidateEnd = cursor + toCandidate.durationMinutes + candidate.durationMinutes + policy.restMinutes;
       const candidatePosition = isHome(candidate) ? origin : (candidate.coordinates ?? previous);
-      const toFixed = await route(candidatePosition, fixed);
-      if (candidateEnd + toFixed.durationMinutes + ARRIVAL_BUFFER <= timeToMinutes(fixed.startAt!)) {
+      const toFixed = await route(candidatePosition, anchor);
+      if (candidateEnd + toFixed.durationMinutes + ARRIVAL_BUFFER <= latestAnchorStart) {
         if (await placeAutomatic(candidate)) automaticFlexible.splice(index, 1);
         else index += 1;
       } else index += 1;
     }
-    await placeAutomatic(fixed);
+    await placeAutomatic(anchor);
   }
 
   for (const candidate of automaticFlexible) {

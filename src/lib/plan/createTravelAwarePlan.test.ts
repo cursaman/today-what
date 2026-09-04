@@ -94,8 +94,33 @@ describe("createTravelAwarePlan", () => {
 
     expect(plan.items[0].travelFromPreviousMinutes).toBe(30);
     expect(plan.items[1].travelFromPreviousMinutes).toBe(30);
-    expect(plan.items[1].startTime).toBe("08:00");
+    expect(plan.items[1].startTime).toBe("08:20");
     expect(plan.totalTravelMinutes).toBe(60);
+  });
+
+  it("일정 유형에 맞는 휴식시간을 직접 선택 활동 사이에도 둔다", async () => {
+    const first = activity({ id: "rest-first", title: "첫 활동", metadata: { manuallySelected: true } });
+    const second = activity({ id: "rest-second", title: "두 번째 활동", metadata: { manuallySelected: true } });
+
+    const { plan } = await createTravelAwarePlan([first, second], "06:00", "12:00", 100000, "balanced", origin, "car");
+
+    expect(plan.items[0].endTime).toBe("07:00");
+    expect(plan.items[1].startTime).toBe("07:20");
+  });
+
+  it("점심 활동을 권장 시간대 안에 배치한다", async () => {
+    const morning = activity({ id: "morning-long", title: "오전 활동", durationMinutes: 120, score: 100 });
+    const lunch = activity({
+      id: "lunch", title: "점심 식사", interests: ["food"], score: 90,
+      metadata: { mealType: "lunch", preferredStart: "11:30", preferredEnd: "14:00" },
+    });
+
+    const { plan } = await createTravelAwarePlan([lunch, morning], "06:00", "18:00", 100000, "balanced", origin, "car");
+    const meal = plan.items.find((item) => item.activity.id === "lunch");
+
+    expect(meal).toBeDefined();
+    expect(timeToMinutes(meal!.startTime)).toBeGreaterThanOrEqual(timeToMinutes("11:30"));
+    expect(timeToMinutes(meal!.endTime)).toBeLessThanOrEqual(timeToMinutes("14:00"));
   });
 
   it("자동 일정에는 필드와 스크린골프를 합쳐 한 개만 배치한다", async () => {
