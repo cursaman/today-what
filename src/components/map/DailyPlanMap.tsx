@@ -29,24 +29,23 @@ declare global {
 }
 
 function toMapItems(items: PlanItem[]): MapPlanItem[] {
-  return items
-    .filter((item) => item.activity.coordinates && item.activity.location !== "집")
-    .map((item, index) => ({
+  return items.flatMap((item, index) => item.activity.coordinates && item.activity.location !== "집" ? [{
       id: item.activity.id,
       title: item.activity.title,
-      latitude: item.activity.coordinates!.latitude,
-      longitude: item.activity.coordinates!.longitude,
+      latitude: item.activity.coordinates.latitude,
+      longitude: item.activity.coordinates.longitude,
       startTime: item.startTime,
       endTime: item.endTime,
       order: index + 1,
-    }));
+    }] : []);
 }
 
-export default function DailyPlanMap({ items, startLocation }: { items: PlanItem[]; startLocation: UserLocation }) {
+export default function DailyPlanMap({ items, startLocation, returnTravelMinutes = 0 }: { items: PlanItem[]; startLocation: UserLocation; returnTravelMinutes?: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const appKey = process.env.NEXT_PUBLIC_KAKAO_MAP_JS_KEY;
   const [status, setStatus] = useState<"loading" | "ready" | "missing-key" | "error">(() => appKey ? "loading" : "missing-key");
   const mapItems = useMemo(() => toMapItems(items), [items]);
+  const endsAtHome = items.at(-1)?.activity.location === "집";
 
   useEffect(() => {
     if (!appKey) return;
@@ -85,6 +84,8 @@ export default function DailyPlanMap({ items, startLocation }: { items: PlanItem
           });
         }
 
+        if (path.length > 1 && (returnTravelMinutes > 0 || endsAtHome)) path.push(start);
+
         if (path.length > 1) {
           new maps.Polyline({ map, path, strokeWeight: 4, strokeOpacity: 0.75, strokeStyle: "solid" });
           map.setBounds(bounds);
@@ -114,7 +115,7 @@ export default function DailyPlanMap({ items, startLocation }: { items: PlanItem
     script.onload = () => window.kakao?.maps.load(render);
     script.onerror = () => setStatus("error");
     document.head.appendChild(script);
-  }, [appKey, mapItems, startLocation.latitude, startLocation.longitude]);
+  }, [appKey, endsAtHome, mapItems, returnTravelMinutes, startLocation.latitude, startLocation.longitude]);
 
   if (status === "missing-key") {
     return <div className="rounded-3xl border border-dashed p-6 text-sm text-neutral-500">지도 사용 시 Vercel에 NEXT_PUBLIC_KAKAO_MAP_JS_KEY를 등록하세요.</div>;

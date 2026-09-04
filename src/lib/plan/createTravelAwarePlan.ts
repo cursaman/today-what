@@ -4,7 +4,7 @@ import type { UserLocation } from "@/types/location";
 import type { UserTransportMode } from "@/types/preferences";
 import { getTravelInfo } from "@/lib/transport/getTravelInfo";
 import { minutesToTime, timeToMinutes } from "./timeUtils";
-import type { TransportRoute } from "@/types/travel";
+import type { TransportMode, TransportRoute } from "@/types/travel";
 
 export type TravelRouteCache = Map<string, Promise<TransportRoute>>;
 
@@ -246,21 +246,36 @@ export async function createTravelAwarePlan(
     await placeAutomatic(candidate);
   }
 
-  // 화면에 별도 항목을 만들지는 않더라도 마지막 장소에서 출발지까지의 귀가를 총 이동량에 포함합니다.
+  const sortedItems = items.sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+  const lastEndTime = sortedItems.at(-1)?.endTime ?? startTime;
+  let returnTravelMinutes = 0;
+  let returnDistanceKm = 0;
+  let returnTransportMode: TransportMode | undefined;
+  let estimatedReturnTime = lastEndTime;
+
+  // 마지막 장소에서 출발지까지의 귀가를 총 이동량과 별도 화면 표시 값에 모두 반영합니다.
   if (!samePosition(previous, origin)) {
     const homebound = await routeCoordinates(previous, origin);
     totalDistanceKm += homebound.distanceKm;
     totalTravelMinutes += homebound.durationMinutes;
+    returnTravelMinutes = homebound.durationMinutes;
+    returnDistanceKm = homebound.distanceKm;
+    returnTransportMode = homebound.mode;
+    estimatedReturnTime = minutesToTime(timeToMinutes(lastEndTime) + homebound.durationMinutes);
   }
 
   return {
     plan: {
       startTime,
       endTime,
-      items: items.sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)),
+      items: sortedItems,
       totalCost,
       totalDistanceKm,
       totalTravelMinutes,
+      returnTravelMinutes,
+      returnDistanceKm,
+      returnTransportMode,
+      estimatedReturnTime,
     },
     draftFailures,
   };

@@ -97,6 +97,24 @@ describe("createTravelAwarePlan", () => {
     expect(plan.items[1].travelFromPreviousMinutes).toBe(30);
     expect(plan.items[1].startTime).toBe("08:20");
     expect(plan.totalTravelMinutes).toBe(60);
+    expect(plan.returnTravelMinutes).toBe(0);
+    expect(plan.estimatedReturnTime).toBe("09:20");
+  });
+
+  it("마지막 외부활동의 귀가 구간과 예상 도착시각을 별도로 반환한다", async () => {
+    const outside = activity({
+      id: "return-home",
+      title: "외부활동",
+      coordinates: { latitude: 36, longitude: 129 },
+      metadata: { manuallySelected: true },
+    });
+
+    const { plan } = await createTravelAwarePlan([outside], "06:00", "12:00", 100000, "balanced", origin, "car");
+
+    expect(plan.returnTravelMinutes).toBe(30);
+    expect(plan.returnDistanceKm).toBe(10);
+    expect(plan.returnTransportMode).toBe("car");
+    expect(plan.estimatedReturnTime).toBe("08:00");
   });
 
   it("일정 유형에 맞는 휴식시간을 직접 선택 활동 사이에도 둔다", async () => {

@@ -18,6 +18,10 @@ export interface DailyPlan {
   totalCost: number;
   totalDistanceKm: number;
   totalTravelMinutes: number;
+  returnTravelMinutes?: number;
+  returnDistanceKm?: number;
+  returnTransportMode?: TransportMode;
+  estimatedReturnTime?: string;
 }
 
 export type PlanStyle = "outdoor" | "balanced" | "relaxed";

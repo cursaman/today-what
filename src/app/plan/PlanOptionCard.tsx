@@ -197,8 +197,15 @@ export default function PlanOptionCard({ option, candidates, region, budget, sta
               )}
             </div>
           ))}
+          {(plan.returnTravelMinutes ?? 0) > 0 ? (
+            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+              <p className="text-xs font-bold text-blue-600">↓ 귀가 {plan.returnTravelMinutes}분 · {(plan.returnDistanceKm ?? 0).toFixed(1)}km</p>
+              <div className="mt-2 flex items-center justify-between gap-2"><strong>{plan.items.at(-1)?.endTime} ~ {plan.estimatedReturnTime}</strong><span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold">출발지 도착</span></div>
+              <p className="mt-1 font-black">귀가</p>
+            </div>
+          ) : null}
         </div>
-        <DailyPlanMap items={plan.items} startLocation={startLocation} />
+        <DailyPlanMap items={plan.items} startLocation={startLocation} returnTravelMinutes={plan.returnTravelMinutes} />
       </div>
 
       <section className="mt-6 rounded-2xl border border-dashed p-4">

@@ -7,7 +7,7 @@ import type { PlanItem } from "@/types/plan";
 import type { ActivityType } from "@/types/activity";
 import { deletePlan, replacePlanItem, updatePlanTitle } from "./actions";
 import { sampleActivities } from "@/data/sampleActivities";
-import { timeToMinutes } from "@/lib/plan/timeUtils";
+import { minutesToTime, timeToMinutes } from "@/lib/plan/timeUtils";
 
 export default async function PlanDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -45,6 +45,12 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ id:
     distanceFromPreviousKm: Number(item.distance_km ?? 0),
     transportMode: item.transport_mode ?? "estimate",
   }));
+  const itemTravelMinutes = items.reduce((total, item) => total + (item.travelFromPreviousMinutes ?? 0), 0);
+  const itemDistanceKm = items.reduce((total, item) => total + (item.distanceFromPreviousKm ?? 0), 0);
+  const returnTravelMinutes = Math.max(0, Number(plan.total_travel_minutes ?? 0) - itemTravelMinutes);
+  const returnDistanceKm = Math.max(0, Number(plan.total_distance_km ?? 0) - itemDistanceKm);
+  const lastEndTime = items.at(-1)?.endTime ?? plan.start_time;
+  const estimatedReturnTime = minutesToTime(timeToMinutes(lastEndTime) + returnTravelMinutes);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-12 pb-24">
@@ -52,8 +58,8 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ id:
       <div className="mt-5 flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-bold text-neutral-500">{plan.region} · {plan.plan_date}</p><div className="mt-2 inline-flex rounded-full bg-neutral-900 px-3 py-1 text-xs font-black text-white">{plan.style === "outdoor" ? "A · 밖에서 즐기기" : plan.style === "relaxed" ? "C · 편하게 보내기" : "B · 적당히 즐기기"}</div><h1 className="mt-2 text-4xl font-black">{plan.title}</h1></div><div className="text-right text-sm"><p>{Number(plan.total_distance_km ?? 0).toFixed(1)}km · 이동 {Number(plan.total_travel_minutes ?? 0)}분</p><strong className="text-xl">{Number(plan.total_cost ?? 0).toLocaleString()}원</strong></div></div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.1fr]">
-        <div className="space-y-3">{items.map((item, index) => <div key={`${item.activity.id}-${index}`} className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-xs font-bold text-neutral-400">↓ 이동 {item.travelFromPreviousMinutes ?? 0}분 · {(item.distanceFromPreviousKm ?? 0).toFixed(1)}km</p><strong>{item.startTime} ~ {item.endTime}</strong><p className="mt-1 font-black">{item.activity.title}</p>{!item.fixedTime && dbItems[index] ? <div className="mt-3 flex flex-wrap gap-2">{sampleActivities.filter((candidate) => !candidate.fixedTime && candidate.id !== item.activity.id).slice(0, 3).map((candidate) => <form key={candidate.id} action={replacePlanItem.bind(null, planId, Number(dbItems[index].id), candidate.id)}><button className="rounded-full border px-3 py-1.5 text-xs font-bold">{candidate.title}로 교체</button></form>)}</div> : null}</div>)}</div>
-        <DailyPlanMap items={items} startLocation={getRegionLocation(plan.region ?? "부산")} />
+        <div className="space-y-3">{items.map((item, index) => <div key={`${item.activity.id}-${index}`} className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-xs font-bold text-neutral-400">↓ 이동 {item.travelFromPreviousMinutes ?? 0}분 · {(item.distanceFromPreviousKm ?? 0).toFixed(1)}km</p><strong>{item.startTime} ~ {item.endTime}</strong><p className="mt-1 font-black">{item.activity.title}</p>{!item.fixedTime && dbItems[index] ? <div className="mt-3 flex flex-wrap gap-2">{sampleActivities.filter((candidate) => !candidate.fixedTime && candidate.id !== item.activity.id).slice(0, 3).map((candidate) => <form key={candidate.id} action={replacePlanItem.bind(null, planId, Number(dbItems[index].id), candidate.id)}><button className="rounded-full border px-3 py-1.5 text-xs font-bold">{candidate.title}로 교체</button></form>)}</div> : null}</div>)}{returnTravelMinutes > 0 ? <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4"><p className="text-xs font-bold text-blue-600">↓ 귀가 {returnTravelMinutes}분 · {returnDistanceKm.toFixed(1)}km</p><strong className="mt-2 block">{lastEndTime} ~ {estimatedReturnTime}</strong><p className="mt-1 font-black">귀가</p></div> : null}</div>
+        <DailyPlanMap items={items} startLocation={getRegionLocation(plan.region ?? "부산")} returnTravelMinutes={returnTravelMinutes} />
       </div>
 
       <section className="mt-8 grid gap-4 rounded-3xl bg-white p-6 sm:grid-cols-2">
