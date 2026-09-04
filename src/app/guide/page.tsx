@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SubpageHero from "@/components/layout/SubpageHero";
 
 const steps = [
   {
@@ -53,19 +54,8 @@ const steps = [
 
 export default function GuidePage() {
   return (
-    <main className="mx-auto max-w-5xl px-4 pb-28 pt-10 md:pb-16 md:pt-14">
-      <section className="overflow-hidden rounded-3xl bg-black px-6 py-10 text-white md:px-10 md:py-14">
-        <p className="mb-3 text-sm font-bold text-white/60">처음 오셨나요?</p>
-        <h1 className="max-w-3xl text-3xl font-black leading-tight md:text-5xl">오늘 뭐하지? 사용법</h1>
-        <p className="mt-5 max-w-3xl text-base leading-7 text-white/75 md:text-lg">
-          어렵지 않습니다. <strong className="text-white">회원가입 → 취향 설정 → 활동 찾기 → 일정 만들기 → 저장</strong> 순서만 기억하세요.
-          처음 사용하는 분도 아래 순서대로 버튼을 눌러 따라 하면 됩니다.
-        </p>
-        <div className="mt-7 flex flex-wrap gap-3">
-          <Link href="/signup" className="rounded-full bg-white px-5 py-3 text-sm font-black text-black">회원가입부터 시작하기</Link>
-          <Link href="/plan" className="rounded-full border border-white/30 px-5 py-3 text-sm font-bold">바로 일정 만들기</Link>
-        </div>
-      </section>
+    <main className="mx-auto max-w-5xl px-4 pb-28 pt-8 md:pb-16">
+      <SubpageHero eyebrow="QUICK START GUIDE" title="오늘 뭐하지? 사용법" description="회원가입 → 취향 설정 → 활동 찾기 → 일정 만들기 → 저장. 이 순서만 기억하면 누구나 쉽게 시작할 수 있어요." icon="?" tone="violet" actions={<><Link href="/signup" className="rounded-2xl bg-[#18210f] px-5 py-3 text-sm font-black text-white">회원가입부터 시작하기</Link><Link href="/plan" className="rounded-2xl border border-black/10 bg-white/60 px-5 py-3 text-sm font-bold">바로 일정 만들기</Link></>} />
 
       <section className="mt-8 rounded-3xl border bg-white p-6 md:p-8">
         <p className="text-sm font-bold text-black/50">한 줄로 보는 사용 순서</p>
@@ -85,8 +75,8 @@ export default function GuidePage() {
         </div>
         <div className="space-y-4">
           {steps.map((step) => (
-            <article key={step.no} className="grid gap-5 rounded-3xl border bg-white p-6 md:grid-cols-[72px_1fr_auto] md:items-center md:p-8">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-black text-xl font-black text-white">{step.no}</div>
+            <article key={step.no} className="grid gap-5 rounded-3xl border border-black/5 bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,.035)] md:grid-cols-[72px_1fr_auto] md:items-center md:p-8">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#dff36b] text-xl font-black text-[#18210f]">{step.no}</div>
               <div>
                 <h3 className="text-xl font-black">{step.title}</h3>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-black/65 md:text-base">{step.desc}</p>

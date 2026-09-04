@@ -27,7 +27,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <body>
         <header className="sticky top-0 z-50 border-b border-black/5 bg-white/90 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4">
-            <Link href="/" className="shrink-0 text-xl font-black tracking-tight">오늘 뭐하지?</Link>
+            <Link href="/" className="flex shrink-0 items-center gap-2 text-xl font-black tracking-tight"><span className="grid h-8 w-8 place-items-center rounded-xl bg-[#dff36b] text-sm">✦</span><span>오늘 뭐하지?</span></Link>
             <nav className="hidden gap-6 text-sm font-semibold md:flex">
               {nav.map(([label, href]) => (
                 <Link key={href} href={href} className="hover:opacity-60">{label}</Link>

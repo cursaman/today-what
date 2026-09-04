@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import PreferencesForm from "./PreferencesForm";
+import SubpageHero from "@/components/layout/SubpageHero";
 
 export default async function PreferencesPage() {
   const supabase = await createClient();
@@ -9,5 +10,5 @@ export default async function PreferencesPage() {
   if (!user) redirect("/login");
 
   const { data } = await supabase.from("user_preferences").select("*").eq("user_id", user.id).maybeSingle();
-  return <main className="mx-auto max-w-2xl px-4 py-12 pb-24"><p className="text-sm font-bold text-neutral-500">DAY 14</p><h1 className="mt-1 text-4xl font-black">나의 추천 설정</h1><p className="mt-3 text-neutral-600">한 번 저장하면 다음 일정 생성부터 기본값으로 반영됩니다.</p><PreferencesForm initialData={data} /></main>;
+  return <main className="mx-auto max-w-3xl px-4 py-8 pb-24"><SubpageHero eyebrow="MY PREFERENCES" title="나의 추천 설정" description="지역·예산·취향을 한 번 저장하면 다음 일정부터 나에게 맞춰 추천해드려요." icon="⚙" tone="violet" /><PreferencesForm initialData={data} /></main>;
 }

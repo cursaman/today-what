@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import HomeExplorer from "./HomeExplorer";
+import SubpageHero from "@/components/layout/SubpageHero";
 
 export const dynamic = "force-dynamic";
 
@@ -26,12 +27,8 @@ export default async function HomeActivityPage() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-12 pb-24">
-      <p className="text-sm font-bold text-neutral-500">HOME · REAL OTT</p>
-      <h1 className="mt-1 text-4xl font-black">집에서 뭐하지?</h1>
-      <p className="mt-3 max-w-3xl text-neutral-600">
-        TMDB의 영화 정보와 한국 OTT 구독 제공 정보를 조합합니다. 내가 이용하는 OTT를 고르고 마음에 드는 영화를 오늘 일정에 바로 넣을 수 있습니다.
-      </p>
+    <main className="mx-auto max-w-6xl px-4 py-8 pb-24">
+      <SubpageHero eyebrow="AT HOME · REAL OTT" title="집에서 뭐하지?" description="내가 이용하는 OTT와 취향을 조합해 오늘 집에서 즐길 영화를 찾고 일정에 바로 담아보세요." icon="⌂" tone="coral" />
       <HomeExplorer initialServices={initialServices} />
     </main>
   );

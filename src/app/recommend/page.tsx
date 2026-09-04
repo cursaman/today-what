@@ -2,11 +2,12 @@ import Link from "next/link";
 import { sampleActivities } from "@/data/sampleActivities";
 import { getRecommendationReasons } from "@/lib/recommendation/getReasons";
 import { recommendActivities } from "@/lib/recommendation/recommend";
+import SubpageHero from "@/components/layout/SubpageHero";
 
 export default function RecommendPage() {
   const condition = {
     region: "부산",
-    startTime: "13:00",
+    startTime: "06:00",
     endTime: "23:00",
     budget: 50000,
     raining: true,
@@ -18,14 +19,12 @@ export default function RecommendPage() {
   const recommendations = recommendActivities(sampleActivities, condition).slice(0, 6);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-12 pb-24">
-      <p className="text-sm font-bold text-neutral-500">RECOMMEND</p>
-      <h1 className="mt-1 text-4xl font-black">오늘의 추천</h1>
-      <p className="mt-3 text-neutral-600">부산 · 비 · 13:00~23:00 · 예산 50,000원 기준</p>
+    <main className="mx-auto max-w-6xl px-4 py-8 pb-24">
+      <SubpageHero eyebrow="RECOMMEND FOR TODAY" title="오늘의 추천" description="부산 · 비 · 06:00~23:00 · 예산 50,000원 기준으로 지금 잘 맞는 활동을 골랐어요." icon="✦" tone="lime" />
 
       <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         {recommendations.map((activity) => (
-          <article key={activity.id} className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+          <article key={activity.id} className="group rounded-[1.75rem] border border-black/5 bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,.04)] transition hover:-translate-y-1 hover:shadow-xl">
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs font-black uppercase text-neutral-400">{activity.type}</span>
               <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold">추천 {activity.score}점</span>
@@ -45,7 +44,7 @@ export default function RecommendPage() {
       </div>
 
       <div className="mt-8">
-        <Link href="/plan" className="inline-flex rounded-full bg-neutral-900 px-5 py-3 font-black text-white">추천으로 일정 만들기</Link>
+        <Link href="/plan" className="inline-flex rounded-2xl bg-[#18210f] px-6 py-4 font-black text-white shadow-lg">추천으로 일정 만들기 →</Link>
       </div>
     </main>
   );

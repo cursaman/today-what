@@ -17,6 +17,7 @@ import type { Activity } from "@/types/activity";
 import type { RecommendationCondition } from "@/types/recommendation";
 import type { UserTransportMode } from "@/types/preferences";
 import { decodePlanDraft } from "@/lib/plan/draftCodec";
+import SubpageHero from "@/components/layout/SubpageHero";
 
 function validTime(value: string | undefined, fallback: string) {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(value ?? "") ? value! : fallback;
@@ -101,10 +102,8 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
   }));
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-12 pb-24">
-      <p className="text-sm font-bold text-neutral-500">DAY 20 COMPLETE</p>
-      <h1 className="mt-1 text-4xl font-black">오늘 일정 A/B/C</h1>
-      <p className="mt-3 text-neutral-600">개인 취향·날씨·관광/OTT Provider·이동 동선을 반영합니다. /outdoor 또는 /home에서 직접 추가한 활동은 일정 후보에서 우선 반영됩니다.</p>
+    <main className="mx-auto max-w-6xl px-4 py-8 pb-24">
+      <SubpageHero eyebrow="YOUR THREE PLANS" title="오늘 일정 A/B/C" description="취향·날씨·실제 콘텐츠와 이동 동선을 계산해 서로 다른 강도의 세 가지 하루를 준비했어요." icon="▦" tone="lime" />
       <PlanDraftSummary items={planDraft.map((activity) => ({ id: activity.id, title: activity.title, type: activity.type, location: activity.location }))} />
 
       <form method="get" className="mt-6 grid gap-3 rounded-3xl border bg-white p-5 shadow-sm sm:grid-cols-[1fr_1fr_auto] sm:items-end">

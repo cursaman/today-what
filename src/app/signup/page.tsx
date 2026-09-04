@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import SubpageHero from "@/components/layout/SubpageHero";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -64,20 +65,16 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-4 py-12 pb-24">
-      <p className="text-sm font-bold text-neutral-500">FIRST STEP</p>
-      <h1 className="mt-1 text-4xl font-black">처음 오셨나요?</h1>
-      <p className="mt-3 leading-7 text-neutral-600">
-        1분이면 가입할 수 있습니다. 가입 후 내 지역과 취향을 설정하면 오늘의 추천이 더 정확해집니다.
-      </p>
+    <main className="mx-auto max-w-xl px-4 py-8 pb-24">
+      <SubpageHero eyebrow="YOUR FIRST STEP" title="처음 오셨나요?" description="1분이면 충분해요. 가입 후 지역과 취향을 설정하면 오늘의 추천이 더 정확해집니다." icon="✦" tone="lime" />
 
       <div className="mt-6 grid grid-cols-3 gap-2 text-center text-xs font-bold text-neutral-500">
-        <div className="rounded-2xl bg-neutral-100 px-2 py-3"><strong className="block text-neutral-900">1</strong>회원가입</div>
-        <div className="rounded-2xl bg-neutral-100 px-2 py-3"><strong className="block text-neutral-900">2</strong>취향설정</div>
-        <div className="rounded-2xl bg-neutral-100 px-2 py-3"><strong className="block text-neutral-900">3</strong>추천보기</div>
+        <div className="rounded-2xl bg-lime-100 px-2 py-3"><strong className="block text-neutral-900">1</strong>회원가입</div>
+        <div className="rounded-2xl bg-white px-2 py-3"><strong className="block text-neutral-900">2</strong>취향설정</div>
+        <div className="rounded-2xl bg-white px-2 py-3"><strong className="block text-neutral-900">3</strong>추천보기</div>
       </div>
 
-      <form onSubmit={handleSignup} className="mt-6 space-y-4 rounded-3xl border bg-white p-6 shadow-sm">
+      <form onSubmit={handleSignup} className="mt-6 space-y-5 rounded-[2rem] border border-black/5 bg-white p-6 shadow-[0_16px_50px_rgba(0,0,0,.06)] md:p-8">
         <label className="block text-sm font-bold">
           이메일
           <input
@@ -86,7 +83,7 @@ export default function SignupPage() {
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="mt-2 w-full rounded-2xl border px-4 py-3 font-normal outline-none focus:ring-2"
+            className="mt-2 w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 font-normal outline-none focus:border-lime-500 focus:ring-4 focus:ring-lime-100"
             placeholder="you@example.com"
           />
         </label>
@@ -100,12 +97,12 @@ export default function SignupPage() {
             autoComplete="new-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="mt-2 w-full rounded-2xl border px-4 py-3 font-normal outline-none focus:ring-2"
+            className="mt-2 w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 font-normal outline-none focus:border-lime-500 focus:ring-4 focus:ring-lime-100"
             placeholder="6자 이상 입력해주세요"
           />
         </label>
 
-        <button disabled={loading} className="w-full rounded-2xl bg-neutral-900 px-4 py-3 font-black text-white disabled:opacity-50">
+        <button disabled={loading} className="w-full rounded-2xl bg-[#18210f] px-4 py-4 font-black text-white shadow-lg disabled:opacity-50">
           {loading ? "가입 중..." : "가입하고 취향 설정하기"}
         </button>
 

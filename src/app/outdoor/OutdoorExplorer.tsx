@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Activity } from "@/types/activity";
 import type { FavoriteItem } from "@/types/favorite";
+import SubpageHero from "@/components/layout/SubpageHero";
 
 type OutdoorActivity = Activity & {
   score: number;
@@ -149,18 +150,8 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10 pb-28">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-black tracking-wider text-emerald-700">OUTDOOR · LIVE TOURAPI</p>
-          <h1 className="mt-1 text-4xl font-black">밖에서 뭐하지?</h1>
-          <p className="mt-3 text-neutral-600">지역과 오늘 날씨를 기준으로 실제 관광·전시·행사·체험 정보를 추천합니다.</p>
-          <p className="mt-2 text-xs font-bold text-emerald-700">밖에서 + 집에서 선택한 후보를 합쳐 최대 10개까지 일정에 담을 수 있습니다.</p>
-        </div>
-        <Link href="/plan" className="rounded-full bg-neutral-900 px-5 py-3 text-sm font-black text-white">
-          전체 일정 후보 {draftCount}개 보기 →
-        </Link>
-      </div>
+    <main className="mx-auto max-w-6xl px-4 py-8 pb-28">
+      <SubpageHero eyebrow="OUTSIDE · LIVE TOUR" title="밖에서 뭐하지?" description="지역과 오늘 날씨를 기준으로 실제 관광·전시·행사·체험을 찾아드려요. 마음에 드는 활동은 최대 10개까지 담을 수 있어요." icon="↗" tone="lime" actions={<Link href="/plan" className="rounded-2xl bg-[#18210f] px-5 py-3 text-sm font-black text-white">전체 일정 후보 {draftCount}개 보기 →</Link>} />
 
       <section className="mt-8 rounded-[2rem] border border-black/5 bg-white p-5 shadow-sm">
         <div className="grid gap-4 md:grid-cols-[220px_1fr] md:items-end">

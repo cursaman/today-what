@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import SubpageHero from "@/components/layout/SubpageHero";
 
 function getSafeNextPath() {
   if (typeof window === "undefined") return "/my";
@@ -43,12 +44,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-4 py-12 pb-24">
-      <p className="text-sm font-bold text-neutral-500">ACCOUNT</p>
-      <h1 className="mt-1 text-4xl font-black">로그인</h1>
-      <p className="mt-3 text-neutral-600">로그인하면 저장한 일정과 내 취향을 이어서 관리할 수 있습니다.</p>
+    <main className="mx-auto max-w-xl px-4 py-8 pb-24">
+      <SubpageHero eyebrow="WELCOME BACK" title="다시 만났네요!" description="로그인하고 저장한 일정과 나만의 추천 설정을 이어서 관리하세요." icon="☻" tone="sky" />
 
-      <form onSubmit={handleLogin} className="mt-8 space-y-4 rounded-3xl border bg-white p-6 shadow-sm">
+      <form onSubmit={handleLogin} className="mt-6 space-y-5 rounded-[2rem] border border-black/5 bg-white p-6 shadow-[0_16px_50px_rgba(0,0,0,.06)] md:p-8">
         <label className="block text-sm font-bold">
           이메일
           <input
@@ -57,7 +56,7 @@ export default function LoginPage() {
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="mt-2 w-full rounded-2xl border px-4 py-3 font-normal outline-none focus:ring-2"
+            className="mt-2 w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 font-normal outline-none focus:border-lime-500 focus:ring-4 focus:ring-lime-100"
             placeholder="you@example.com"
           />
         </label>
@@ -71,12 +70,12 @@ export default function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="mt-2 w-full rounded-2xl border px-4 py-3 font-normal outline-none focus:ring-2"
+            className="mt-2 w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 font-normal outline-none focus:border-lime-500 focus:ring-4 focus:ring-lime-100"
             placeholder="비밀번호"
           />
         </label>
 
-        <button disabled={loading} className="w-full rounded-2xl bg-neutral-900 px-4 py-3 font-black text-white disabled:opacity-50">
+        <button disabled={loading} className="w-full rounded-2xl bg-[#18210f] px-4 py-4 font-black text-white shadow-lg disabled:opacity-50">
           {loading ? "로그인 중..." : "로그인"}
         </button>
 
