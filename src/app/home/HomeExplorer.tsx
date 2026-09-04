@@ -21,6 +21,7 @@ interface OttCard {
     logoUrl: string | null;
   }>;
   watchLink: string | null;
+  genres: string[];
 }
 
 interface ApiResponse {
@@ -224,6 +225,9 @@ export default function HomeExplorer({ initialServices }: { initialServices: str
                   <div className="mt-4 flex flex-wrap gap-2">
                     {serviceNames.map((service) => (
                       <span key={service} className="rounded-full bg-neutral-900 px-3 py-1 text-xs font-black text-white">{service}</span>
+                    ))}
+                    {item.genres.slice(0, 2).map((genre) => (
+                      <span key={genre} className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">{genre}</span>
                     ))}
                   </div>
 

@@ -26,6 +26,11 @@ export function scoreActivity(activity: Activity, condition: RecommendationCondi
     const team=value.trim().toLocaleLowerCase("ko-KR");
     return Boolean(team) && ((Boolean(home) && (home.includes(team)||team.includes(home))) || (Boolean(away) && (away.includes(team)||team.includes(away))));
   })) score+=40;
-  if(activity.type==="ott" && condition.ottServices?.length){const providers=Array.isArray(activity.metadata?.providers)?activity.metadata.providers:[];if(providers.some((p)=>condition.ottServices?.includes(String(p))))score+=20;}
+  if(activity.type==="ott" && condition.ottServices?.length){
+    const services=Array.isArray(activity.metadata?.services)?activity.metadata.services:[];
+    const providers=Array.isArray(activity.metadata?.providers)?activity.metadata.providers:[];
+    if(services.some((service)=>condition.ottServices?.includes(String(service))) || providers.some((provider)=>condition.ottServices?.includes(String(provider)))) score+=20;
+    else score-=80;
+  }
   return score;
 }

@@ -19,6 +19,13 @@ const SERVICE_ALIASES: Record<SupportedOttService, string[]> = {
   Watcha: ["watcha"],
 };
 
+const GENRE_NAMES: Record<number, string> = {
+  12: "모험", 14: "판타지", 16: "애니메이션", 18: "드라마", 27: "공포",
+  28: "액션", 35: "코미디", 36: "역사", 37: "서부", 53: "스릴러",
+  80: "범죄", 99: "다큐멘터리", 878: "SF", 9648: "미스터리",
+  10402: "음악", 10749: "로맨스", 10751: "가족", 10752: "전쟁", 10770: "TV 영화",
+};
+
 function normalize(value: string) {
   return value.toLowerCase().replace(/\s+/g, " ").trim();
 }
@@ -67,6 +74,7 @@ export interface OttMovieCard {
     logoUrl: string | null;
   }>;
   watchLink: string | null;
+  genres: string[];
 }
 
 function toActivity(movie: TmdbMovie, providers: TmdbProvider[], services: SupportedOttService[]): Activity {
@@ -88,10 +96,42 @@ function toActivity(movie: TmdbMovie, providers: TmdbProvider[], services: Suppo
       rating: movie.vote_average,
       providers: providers.map((provider) => provider.provider_name),
       services,
+      genreIds: movie.genre_ids ?? [],
+      genres: (movie.genre_ids ?? []).map((id) => GENRE_NAMES[id]).filter(Boolean),
       attribution: "JustWatch",
       releaseDate: movie.release_date ?? null,
     },
   };
+}
+
+export function diversifyOttMovieCards(cards: OttMovieCard[], requestedServices: SupportedOttService[]): OttMovieCard[] {
+  const remaining = cards.map((card, popularityIndex) => ({ card, popularityIndex }));
+  const result: OttMovieCard[] = [];
+  const genreCounts = new Map<string, number>();
+  const serviceCounts = new Map<SupportedOttService, number>();
+
+  while (remaining.length) {
+    let bestIndex = 0;
+    let bestScore = Number.NEGATIVE_INFINITY;
+    for (let index = 0; index < remaining.length; index += 1) {
+      const { card, popularityIndex } = remaining[index];
+      const services = [...new Set(card.providers.map((provider) => provider.service))];
+      const uncoveredServiceBonus = services.some((service) => requestedServices.includes(service) && !serviceCounts.has(service)) ? 35 : 0;
+      const genrePenalty = card.genres.reduce((total, genre) => total + (genreCounts.get(genre) ?? 0) * 14, 0);
+      const servicePenalty = services.reduce((total, service) => total + (serviceCounts.get(service) ?? 0) * 4, 0);
+      const score = card.rating * 2 + uncoveredServiceBonus - genrePenalty - servicePenalty - popularityIndex;
+      if (score > bestScore) { bestScore = score; bestIndex = index; }
+    }
+
+    const [{ card }] = remaining.splice(bestIndex, 1);
+    result.push(card);
+    for (const genre of card.genres) genreCounts.set(genre, (genreCounts.get(genre) ?? 0) + 1);
+    for (const service of new Set(card.providers.map((provider) => provider.service))) {
+      serviceCounts.set(service, (serviceCounts.get(service) ?? 0) + 1);
+    }
+  }
+
+  return result;
 }
 
 export async function getOttMovieCards(services: string[]): Promise<OttMovieCard[]> {
@@ -150,6 +190,7 @@ export async function getOttMovieCards(services: string[]): Promise<OttMovieCard
               logoUrl: provider.logo_path ? `https://image.tmdb.org/t/p/w92${provider.logo_path}` : null,
             })),
             watchLink: watch.results?.KR?.link ?? null,
+            genres: (movie.genre_ids ?? []).map((id) => GENRE_NAMES[id]).filter(Boolean),
           };
         } catch {
           return null;
@@ -157,7 +198,7 @@ export async function getOttMovieCards(services: string[]): Promise<OttMovieCard
       })
     );
 
-    return cards.filter((card): card is OttMovieCard => card !== null);
+    return diversifyOttMovieCards(cards.filter((card): card is OttMovieCard => card !== null), requested);
   } catch (error) {
     console.error("TMDB OTT error", error);
     return [];

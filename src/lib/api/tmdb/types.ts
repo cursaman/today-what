@@ -7,6 +7,7 @@ export interface TmdbMovie {
   vote_average: number;
   vote_count?: number;
   release_date?: string;
+  genre_ids?: number[];
 }
 
 export interface TmdbMovieResponse {
