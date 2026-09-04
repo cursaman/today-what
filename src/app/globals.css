@@ -11,6 +11,14 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", Arial, Helvetica, sans-serif;
 }
 button, a { -webkit-tap-highlight-color: transparent; }
+
+.home-hero {
+  background: linear-gradient(135deg, rgba(255,255,255,.92), rgba(244,248,229,.92)), radial-gradient(circle at 80% 20%, #dff36b 0, transparent 38%);
+}
+@keyframes home-float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-7px) rotate(-1deg); } }
+.home-float { animation: home-float 4s ease-in-out infinite; }
+.home-float-delayed { animation: home-float 4.8s ease-in-out .7s infinite; }
+@media (prefers-reduced-motion: reduce) { .home-float, .home-float-delayed { animation: none; } }
