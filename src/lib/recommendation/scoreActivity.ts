@@ -6,6 +6,11 @@ export function scoreActivity(activity: Activity, condition: RecommendationCondi
   let score=50;
   if(activity.metadata?.manuallySelected===true) score+=150;
   const matched=activity.interests.filter(i=>condition.interests.includes(i)).length; score+=matched*20;
+  const selectedGolfTypes=condition.interests.filter((interest)=>interest==="golf-field"||interest==="golf-screen");
+  if(activity.interests.includes("golf")&&selectedGolfTypes.length){
+    const activityGolfType=`golf-${String(activity.metadata?.golfType??"")}`;
+    score+=selectedGolfTypes.some((type)=>type===activityGolfType)?25:-15;
+  }
   if(condition.raining) score+=activity.indoor?30:-40; else if(!activity.indoor) score+=10;
   if(condition.preferredActivityMode==="indoor") score+=activity.indoor?25:-15;
   if(condition.preferredActivityMode==="outdoor") score+=activity.indoor?-10:25;

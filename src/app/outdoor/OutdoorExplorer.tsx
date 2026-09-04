@@ -40,6 +40,7 @@ const CATEGORIES = [
 export default function OutdoorExplorer({ initialRegion = "부산", personalized = false }: { initialRegion?: string; personalized?: boolean }) {
   const [region, setRegion] = useState(initialRegion);
   const [category, setCategory] = useState("all");
+  const [golfType, setGolfType] = useState<"all" | "field" | "screen">("all");
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -80,7 +81,11 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
     return () => controller.abort();
   }, [region, category]);
 
-  const activities = useMemo(() => data?.activities ?? [], [data]);
+  const activities = useMemo(() => {
+    const items = data?.activities ?? [];
+    if (category !== "golf" || golfType === "all") return items;
+    return items.filter((activity) => activity.metadata?.golfType === golfType);
+  }, [category, data, golfType]);
 
   async function togglePlan(activity: OutdoorActivity, added: boolean) {
     const response = await fetch(
@@ -174,6 +179,15 @@ export default function OutdoorExplorer({ initialRegion = "부산", personalized
             </div>
           </div>
         </div>
+
+        {category === "golf" ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-emerald-50 p-3">
+            <span className="mr-1 text-xs font-black text-emerald-900">골프 유형</span>
+            {([['all','전체'],['field','필드'],['screen','스크린']] as const).map(([value, label]) => (
+              <button key={value} type="button" aria-pressed={golfType === value} onClick={() => setGolfType(value)} className={`rounded-full px-4 py-2 text-sm font-bold ${golfType === value ? "bg-emerald-700 text-white" : "bg-white text-emerald-900"}`}>{label}</button>
+            ))}
+          </div>
+        ) : null}
 
         {data?.weather ? (
           <div className="mt-5 grid gap-3 rounded-2xl bg-neutral-900 p-4 text-white sm:grid-cols-3">

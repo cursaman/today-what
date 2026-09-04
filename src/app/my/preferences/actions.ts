@@ -8,6 +8,7 @@ const validCompanions = new Set(["alone","friend","couple","family"]);
 const validModes = new Set(["indoor","balanced","outdoor"]);
 const validTransport = new Set(["car","transit","walk"]);
 const validOtt = new Set(["Netflix","TVING","Disney+","Wavve","Watcha"]);
+const validInterests = new Set(["travel","culture","cafe","movie","ott","sports","activity","golf","golf-field","golf-screen"]);
 
 export async function savePreferences(input: PreferenceInput) {
   const supabase = await createClient();
@@ -19,7 +20,7 @@ export async function savePreferences(input: PreferenceInput) {
     default_region:validRegions.has(input.defaultRegion)?input.defaultRegion:"부산",
     budget_level:Math.max(0,Math.min(Number(input.budgetLevel)||50000,1000000)),
     companion_type:validCompanions.has(input.companionType)?input.companionType:"alone",
-    interests:[...new Set(input.interests)].slice(0,20),
+    interests:[...new Set(input.interests.filter((value)=>validInterests.has(value)))].slice(0,20),
     favorite_teams:[...new Set(input.favoriteTeams.map(v=>v.trim()).filter(Boolean))].slice(0,10),
     ott_services:[...new Set(input.ottServices.filter(v=>validOtt.has(v)))],
     activity_mode:validModes.has(input.activityMode)?input.activityMode:"balanced",

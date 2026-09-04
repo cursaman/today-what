@@ -38,8 +38,26 @@ export default function PreferencesForm({ initialData }: { initialData: InitialP
   const [message, setMessage] = useState("");
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
+  const golfSelected = selectedInterests.includes("golf");
+  const selectedGolfTypes = selectedInterests.filter((value) => value === "golf-field" || value === "golf-screen");
 
   const toggle = (value: string, values: string[], setter: (value: string[]) => void) => setter(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
+
+  function toggleInterest(value: string) {
+    if (value !== "golf") {
+      toggle(value, selectedInterests, setSelectedInterests);
+      return;
+    }
+    setSelectedInterests(golfSelected
+      ? selectedInterests.filter((interest) => interest !== "golf" && !interest.startsWith("golf-"))
+      : [...selectedInterests, "golf", "golf-field", "golf-screen"]);
+  }
+
+  function chooseGolfType(type: "field" | "screen" | "both") {
+    const withoutGolf = selectedInterests.filter((interest) => interest !== "golf" && !interest.startsWith("golf-"));
+    const types = type === "both" ? ["golf-field", "golf-screen"] : [`golf-${type}`];
+    setSelectedInterests([...withoutGolf, "golf", ...types]);
+  }
 
   function submit() {
     startTransition(async () => {
@@ -53,7 +71,9 @@ export default function PreferencesForm({ initialData }: { initialData: InitialP
     <label className="block"><span className="font-black">기본 지역</span><select className="mt-2 w-full rounded-2xl border p-3" value={region} onChange={(e)=>setRegion(e.target.value)}>{REGIONS.map(v=><option key={v}>{v}</option>)}</select></label>
     <section><h2 className="font-black">하루 예산 수준</h2><div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">{BUDGETS.map(([value,label])=><button key={value} type="button" onClick={()=>setBudget(value)} className={`rounded-2xl border p-3 font-bold ${budget===value?"bg-neutral-900 text-white":""}`}>{label}</button>)}</div></section>
     <label className="block"><span className="font-black">누구와 함께?</span><select className="mt-2 w-full rounded-2xl border p-3" value={companion} onChange={(e)=>setCompanion(e.target.value)}><option value="alone">혼자</option><option value="friend">친구</option><option value="couple">연인</option><option value="family">가족</option></select></label>
-    <section><h2 className="font-black">관심사 · 복수 선택</h2><div className="mt-3 space-y-3">{INTEREST_GROUPS.map((group)=><div key={group.label}><p className="mb-2 text-xs font-black text-neutral-400">{group.label}</p><div className="flex flex-wrap gap-2">{group.items.map(([value,label])=><button type="button" key={value} onClick={()=>toggle(value,selectedInterests,setSelectedInterests)} className={`rounded-full border px-4 py-2 text-sm font-bold ${selectedInterests.includes(value)?"bg-neutral-900 text-white":""}`}>{label}</button>)}</div></div>)}</div></section>
+    <section><h2 className="font-black">관심사 · 복수 선택</h2><div className="mt-3 space-y-3">{INTEREST_GROUPS.map((group)=><div key={group.label}><p className="mb-2 text-xs font-black text-neutral-400">{group.label}</p><div className="flex flex-wrap gap-2">{group.items.map(([value,label])=><button type="button" key={value} aria-pressed={selectedInterests.includes(value)} onClick={()=>toggleInterest(value)} className={`rounded-full border px-4 py-2 text-sm font-bold ${selectedInterests.includes(value)?"bg-neutral-900 text-white":""}`}>{label}</button>)}</div></div>)}</div>
+      {golfSelected ? <div className="mt-4 rounded-2xl bg-emerald-50 p-4"><p className="text-sm font-black text-emerald-900">선호하는 골프 유형</p><p className="mt-1 text-xs text-emerald-800/70">필드는 야외·장시간, 스크린은 실내 외출 활동으로 추천합니다.</p><div className="mt-3 grid grid-cols-3 gap-2">{([['field','필드'],['screen','스크린'],['both','둘 다']] as const).map(([value,label])=>{const active=value==='both'?selectedGolfTypes.length===2:selectedGolfTypes.length===1&&selectedGolfTypes[0]===`golf-${value}`;return <button key={value} type="button" aria-pressed={active} onClick={()=>chooseGolfType(value)} className={`rounded-xl border px-3 py-2 text-sm font-black ${active?'border-emerald-700 bg-emerald-700 text-white':'border-emerald-200 bg-white text-emerald-900'}`}>{label}</button>;})}</div></div> : null}
+    </section>
     <section><h2 className="font-black">사용 OTT</h2><div className="mt-2 flex flex-wrap gap-2">{OTT.map(value=><button type="button" key={value} onClick={()=>toggle(value,ottServices,setOttServices)} className={`rounded-full border px-4 py-2 text-sm font-bold ${ottServices.includes(value)?"bg-neutral-900 text-white":""}`}>{value}</button>)}</div></section>
     <section><h2 className="font-black">좋아하는 스포츠팀</h2><div className="mt-2 flex gap-2"><input className="min-w-0 flex-1 rounded-2xl border p-3" value={teamInput} onChange={(e)=>setTeamInput(e.target.value)} placeholder="예: 롯데 자이언츠"/><button type="button" className="rounded-2xl bg-neutral-900 px-4 font-bold text-white" onClick={()=>{const v=teamInput.trim();if(v&&!favoriteTeams.includes(v))setFavoriteTeams([...favoriteTeams,v]);setTeamInput("");}}>추가</button></div><div className="mt-2 flex flex-wrap gap-2">{favoriteTeams.map(team=><button type="button" key={team} onClick={()=>setFavoriteTeams(favoriteTeams.filter(v=>v!==team))} className="rounded-full bg-neutral-100 px-3 py-2 text-sm">{team} ×</button>)}</div></section>
     <section><h2 className="font-black">실내 / 실외 선호</h2><div className="mt-2 grid grid-cols-3 gap-2">{[["indoor","실내"],["balanced","균형"],["outdoor","실외"]].map(([v,l])=><button key={v} type="button" onClick={()=>setActivityMode(v)} className={`rounded-2xl border p-3 font-bold ${activityMode===v?"bg-neutral-900 text-white":""}`}>{l}</button>)}</div></section>

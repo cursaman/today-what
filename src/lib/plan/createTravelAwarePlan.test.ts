@@ -154,4 +154,12 @@ describe("scoreActivity", () => {
 
     expect(scoreActivity(matchingGame, condition) - scoreActivity(ordinary, condition)).toBe(40);
   });
+
+  it("선택한 골프 세부 유형을 다른 골프 유형보다 우선한다", () => {
+    const golfCondition = { ...condition, interests: ["golf", "golf-field"] };
+    const field = activity({ id: "field-score", title: "필드", indoor: false, interests: ["golf", "golf-field"], metadata: { golfType: "field" } });
+    const screen = activity({ id: "screen-score", title: "스크린", interests: ["golf", "golf-screen"], metadata: { golfType: "screen" } });
+
+    expect(scoreActivity(field, golfCondition)).toBeGreaterThan(scoreActivity(screen, golfCondition));
+  });
 });
