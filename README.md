@@ -23,11 +23,9 @@ npm run dev
 
 ## 2. Supabase
 
-Supabase SQL Editor에서 순서대로 실행합니다.
+Supabase SQL Editor에서 `supabase/complete.sql` 하나를 실행합니다. 신규 DB와 기존 Day SQL 적용 DB에서 모두 재실행할 수 있으며 기존 데이터는 삭제하지 않습니다. 이어서 `supabase/verify.sql`을 실행하면 필수 테이블·컬럼·RLS 상태를 검사합니다.
 
-1. `supabase/day12.sql`
-2. `supabase/day20.sql`
-3. `supabase/day3-alignment.sql` (통합 찜·관심 스포츠·이용 OTT 및 Day 3 확장 컬럼)
+기존 `day12.sql`, `day20.sql`, `day3-alignment.sql` 파일은 과거 설치 이력 확인용으로만 유지합니다.
 
 ## 3. Vercel 환경변수
 
