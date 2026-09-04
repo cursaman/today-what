@@ -1,0 +1,132 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Activity } from "@/types/activity";
+import type { RecommendationCondition } from "@/types/recommendation";
+import { timeToMinutes } from "./timeUtils";
+
+vi.mock("@/lib/transport/getTravelInfo", () => ({
+  getTravelInfo: vi.fn(),
+}));
+
+import { getTravelInfo } from "@/lib/transport/getTravelInfo";
+import { scoreActivity } from "@/lib/recommendation/scoreActivity";
+import { createTravelAwarePlan } from "./createTravelAwarePlan";
+
+const mockedTravel = vi.mocked(getTravelInfo);
+const origin = { latitude: 35, longitude: 129, region: "부산" };
+
+function activity(overrides: Partial<Activity & { score: number }> & Pick<Activity, "id" | "title">): Activity & { score?: number } {
+  return {
+    type: "activity",
+    durationMinutes: 60,
+    fixedTime: false,
+    indoor: true,
+    cost: 0,
+    location: "부산",
+    coordinates: { latitude: 35, longitude: 129 },
+    interests: ["activity"],
+    source: "test",
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  mockedTravel.mockReset();
+  mockedTravel.mockImplementation(async (from, to, mode = "car") => ({
+    distanceKm: 10,
+    durationMinutes: from.latitude === to.latitude && from.longitude === to.longitude ? 0 : 30,
+    mode,
+    source: "test",
+  }));
+});
+
+describe("createTravelAwarePlan", () => {
+  it("고정시간 전에 가능한 자유 활동을 배치한다", async () => {
+    const flexible = activity({ id: "morning", title: "오전 활동", score: 100 });
+    const fixed = activity({ id: "fixed", title: "10시 영화", type: "movie", fixedTime: true, startAt: "10:00", durationMinutes: 120, score: 90 });
+
+    const { plan } = await createTravelAwarePlan([fixed, flexible], "06:00", "23:00", 100000, "balanced", origin, "car");
+
+    expect(plan.items.map((item) => item.activity.id)).toEqual(["morning", "fixed"]);
+    expect(plan.items[0].startTime).toBe("06:00");
+    expect(plan.items[1].startTime).toBe("10:00");
+  });
+
+  it("직접 선택 후보를 자동 추천보다 먼저 반영한다", async () => {
+    const selected = activity({ id: "selected", title: "내 선택", metadata: { manuallySelected: true } });
+    const automatic = activity({ id: "automatic", title: "자동 추천", score: 999 });
+
+    const { plan } = await createTravelAwarePlan([automatic, selected], "06:00", "09:00", 100000, "balanced", origin, "car");
+
+    expect(plan.items[0].activity.id).toBe("selected");
+  });
+
+  it("예산을 넘는 직접 선택 후보는 이유와 함께 제외한다", async () => {
+    const first = activity({ id: "first", title: "첫 활동", cost: 40000, metadata: { manuallySelected: true } });
+    const second = activity({ id: "second", title: "두 번째 활동", cost: 40000, metadata: { manuallySelected: true } });
+
+    const result = await createTravelAwarePlan([first, second], "06:00", "12:00", 50000, "balanced", origin, "car");
+
+    expect(result.plan.totalCost).toBe(40000);
+    expect(result.plan.items).toHaveLength(1);
+    expect(result.draftFailures).toContainEqual({ id: "second", title: "두 번째 활동", reason: "예산 초과" });
+  });
+
+  it("귀가하면 종료시간을 넘는 활동을 제외한다", async () => {
+    const far = activity({
+      id: "far",
+      title: "먼 활동",
+      durationMinutes: 90,
+      coordinates: { latitude: 36, longitude: 129 },
+      metadata: { manuallySelected: true },
+    });
+
+    const result = await createTravelAwarePlan([far], "20:00", "22:00", 100000, "balanced", origin, "car");
+
+    expect(result.plan.items).toHaveLength(0);
+    expect(result.draftFailures[0]?.reason).toContain("종료 시간");
+  });
+
+  it("외부활동 뒤 집 활동까지 실제 귀가 이동을 계산한다", async () => {
+    const outside = activity({ id: "outside", title: "외부활동", coordinates: { latitude: 36, longitude: 129 }, metadata: { manuallySelected: true } });
+    const home = activity({ id: "home", title: "집 활동", type: "ott", location: "집", coordinates: undefined, metadata: { manuallySelected: true } });
+
+    const { plan } = await createTravelAwarePlan([outside, home], "06:00", "12:00", 100000, "balanced", origin, "car");
+
+    expect(plan.items[0].travelFromPreviousMinutes).toBe(30);
+    expect(plan.items[1].travelFromPreviousMinutes).toBe(30);
+    expect(plan.items[1].startTime).toBe("08:00");
+    expect(plan.totalTravelMinutes).toBe(60);
+  });
+
+  it("자동 일정에는 필드와 스크린골프를 합쳐 한 개만 배치한다", async () => {
+    const field = activity({ id: "field", title: "필드 골프", durationMinutes: 120, indoor: false, interests: ["golf"], score: 100 });
+    const screen = activity({ id: "screen", title: "스크린골프", durationMinutes: 120, interests: ["golf"], score: 90 });
+
+    const { plan } = await createTravelAwarePlan([field, screen], "06:00", "18:00", 500000, "outdoor", origin, "car");
+
+    expect(plan.items.filter((item) => item.activity.interests.includes("golf"))).toHaveLength(1);
+  });
+
+  it("생성된 활동 사이 시간이 겹치지 않는다", async () => {
+    const candidates = [1, 2, 3].map((number) => activity({ id: String(number), title: `활동 ${number}`, score: 100 - number }));
+    const { plan } = await createTravelAwarePlan(candidates, "06:00", "18:00", 100000, "outdoor", origin, "car");
+
+    for (let index = 1; index < plan.items.length; index += 1) {
+      expect(timeToMinutes(plan.items[index].startTime)).toBeGreaterThanOrEqual(timeToMinutes(plan.items[index - 1].endTime));
+    }
+  });
+});
+
+describe("scoreActivity", () => {
+  const condition: RecommendationCondition = {
+    region: "부산", startTime: "06:00", endTime: "23:00", budget: 100000,
+    raining: false, companion: "alone", interests: [], favoriteTeams: ["롯데"], preferredActivityMode: "balanced",
+  };
+
+  it("팀 정보가 없는 활동에 선호팀 점수를 주지 않는다", () => {
+    const ordinary = activity({ id: "ordinary", title: "일반 활동", metadata: {} });
+    const matchingGame = activity({ id: "game", title: "롯데 경기", type: "sport", metadata: { homeTeam: "롯데 자이언츠", awayTeam: "LG" } });
+
+    expect(scoreActivity(matchingGame, condition) - scoreActivity(ordinary, condition)).toBe(40);
+  });
+});
