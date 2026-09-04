@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import DailyPlanMap from "@/components/map/DailyPlanMap";
 import type { Activity } from "@/types/activity";
 import type { PlanOption, DailyPlan, PlanItem } from "@/types/plan";
 import type { UserLocation } from "@/types/location";
@@ -172,11 +171,11 @@ export default function PlanOptionCard({ option, candidates, region, budget, sta
         </ul>
       ) : null}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.1fr]">
-        <div className="space-y-3">
+      <div className="mt-6">
+        <div className="grid gap-3 md:grid-cols-2">
           {plan.items.map((item, index) => (
-            <div key={`${option.id}-${item.activity.id}-${index}`} className="rounded-2xl bg-neutral-50 p-4">
-              {(item.travelFromPreviousMinutes ?? 0) > 0 && <p className="mb-2 text-xs font-bold text-neutral-400">↓ 이동 {item.travelFromPreviousMinutes}분 · {(item.distanceFromPreviousKm ?? 0).toFixed(1)}km</p>}
+            <div key={`${option.id}-${item.activity.id}-${index}`} className="rounded-2xl border border-black/[0.04] bg-neutral-50 p-4">
+              <div className="mb-3 flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[#18210f] text-xs font-black text-white">{index + 1}</span>{(item.travelFromPreviousMinutes ?? 0) > 0 ? <p className="text-xs font-bold text-neutral-400">이동 {item.travelFromPreviousMinutes}분 · {(item.distanceFromPreviousKm ?? 0).toFixed(1)}km</p> : <p className="text-xs font-bold text-neutral-400">일정 시작</p>}</div>
               <div className="flex items-center justify-between gap-2"><strong>{item.startTime} ~ {item.endTime}</strong><span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold">{item.fixedTime ? "시간 고정" : "조정 가능"}</span></div>
               <p className="mt-1 font-black">{item.activity.title}</p>
               <p className="mt-1 text-xs text-neutral-500">{item.activity.location ?? "장소 미정"} · {item.activity.cost.toLocaleString()}원</p>
@@ -198,14 +197,13 @@ export default function PlanOptionCard({ option, candidates, region, budget, sta
             </div>
           ))}
           {(plan.returnTravelMinutes ?? 0) > 0 ? (
-            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 md:col-span-2">
               <p className="text-xs font-bold text-blue-600">↓ 귀가 {plan.returnTravelMinutes}분 · {(plan.returnDistanceKm ?? 0).toFixed(1)}km</p>
               <div className="mt-2 flex items-center justify-between gap-2"><strong>{plan.items.at(-1)?.endTime} ~ {plan.estimatedReturnTime}</strong><span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold">출발지 도착</span></div>
               <p className="mt-1 font-black">귀가</p>
             </div>
           ) : null}
         </div>
-        <DailyPlanMap items={plan.items} startLocation={startLocation} returnTravelMinutes={plan.returnTravelMinutes} />
       </div>
 
       <section className="mt-6 rounded-2xl border border-dashed p-4">
