@@ -39,7 +39,9 @@ from (values
   ('OTT 영화 한 편', '집에서 편안하게 OTT 영화 한 편을 감상합니다.', 'home', 'ott', 120, 1, 'any'),
   ('30분 독서', '조용하게 책을 읽으며 시간을 보냅니다.', 'home', 'book', 30, 0, 'any'),
   ('오늘의 요리', '한 끼를 직접 만들어봅니다.', 'home', 'cooking', 60, 1, 'any'),
-  ('스포츠 경기 시청', '관심팀 경기를 일정에 넣어 시청합니다.', 'home', 'sports', 150, 0, 'any')
+  ('스포츠 경기 시청', '관심팀 경기를 일정에 넣어 시청합니다.', 'home', 'sports', 150, 0, 'any'),
+  ('필드 골프', '날씨와 이동시간을 확인해 예약한 골프장에서 라운드합니다.', 'outdoor', 'golf-field', 300, 4, 'sunny'),
+  ('스크린골프', '날씨와 관계없이 실내 스크린골프장에서 즐깁니다.', 'outdoor', 'golf-screen', 120, 2, 'any')
 ) as seed(title, description, activity_type, category, duration_minutes, cost_level, weather_type)
 where not exists (
   select 1 from public.activities existing where existing.title = seed.title and existing.category = seed.category

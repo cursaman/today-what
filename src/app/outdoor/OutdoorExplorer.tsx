@@ -34,6 +34,7 @@ const CATEGORIES = [
   { id: "14", label: "문화·전시" },
   { id: "15", label: "축제·행사" },
   { id: "28", label: "레저·체험" },
+  { id: "golf", label: "골프" },
 ];
 
 export default function OutdoorExplorer({ initialRegion = "부산", personalized = false }: { initialRegion?: string; personalized?: boolean }) {

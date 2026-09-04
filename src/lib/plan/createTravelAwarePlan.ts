@@ -15,9 +15,9 @@ const AUTO_POLICY: Record<PlanStyle, {
   restMinutes: number;
   groupLimits: Record<string, number>;
 }> = {
-  outdoor: { maxItems: 7, restMinutes: 10, groupLimits: { screen: 2, sport: 1, tour: 3, activity: 2 } },
-  balanced: { maxItems: 6, restMinutes: 20, groupLimits: { screen: 2, sport: 1, tour: 2, activity: 2 } },
-  relaxed: { maxItems: 4, restMinutes: 45, groupLimits: { screen: 1, sport: 1, tour: 1, activity: 2 } },
+  outdoor: { maxItems: 7, restMinutes: 10, groupLimits: { screen: 2, sport: 1, golf: 1, tour: 3, activity: 2 } },
+  balanced: { maxItems: 6, restMinutes: 20, groupLimits: { screen: 2, sport: 1, golf: 1, tour: 2, activity: 2 } },
+  relaxed: { maxItems: 4, restMinutes: 45, groupLimits: { screen: 1, sport: 1, golf: 1, tour: 1, activity: 2 } },
 };
 
 function isManual(activity: Activity) {
@@ -36,6 +36,7 @@ function score(activity: Activity) {
 
 function activityGroup(activity: Activity) {
   if (activity.type === "ott" || activity.type === "movie") return "screen";
+  if (activity.interests.includes("golf")) return "golf";
   return activity.type;
 }
 

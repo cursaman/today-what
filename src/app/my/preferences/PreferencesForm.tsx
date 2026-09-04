@@ -16,8 +16,10 @@ interface InitialPreferences {
 }
 
 const REGIONS = ["부산","서울","인천","대전","대구","광주","울산","세종","경기","강원","충북","충남","경북","경남","전북","전남","제주"];
-const INTERESTS = [
-  ["travel","관광"],["culture","전시·문화"],["cafe","카페"],["movie","영화"],["ott","OTT"],["sports","스포츠"],["activity","체험·레저"]
+const INTEREST_GROUPS = [
+  { label: "나들이·문화", items: [["travel","관광"],["culture","전시·문화"],["cafe","카페"]] },
+  { label: "콘텐츠", items: [["movie","영화"],["ott","OTT"]] },
+  { label: "스포츠·레저", items: [["sports","스포츠 관람"],["activity","체험·레저"],["golf","골프(필드·스크린)"]] },
 ] as const;
 const OTT = ["Netflix", "TVING", "Disney+", "Wavve", "Watcha"];
 const BUDGETS = [[30000,"3만원"],[50000,"5만원"],[100000,"10만원"],[200000,"20만원"]] as const;
@@ -51,7 +53,7 @@ export default function PreferencesForm({ initialData }: { initialData: InitialP
     <label className="block"><span className="font-black">기본 지역</span><select className="mt-2 w-full rounded-2xl border p-3" value={region} onChange={(e)=>setRegion(e.target.value)}>{REGIONS.map(v=><option key={v}>{v}</option>)}</select></label>
     <section><h2 className="font-black">하루 예산 수준</h2><div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">{BUDGETS.map(([value,label])=><button key={value} type="button" onClick={()=>setBudget(value)} className={`rounded-2xl border p-3 font-bold ${budget===value?"bg-neutral-900 text-white":""}`}>{label}</button>)}</div></section>
     <label className="block"><span className="font-black">누구와 함께?</span><select className="mt-2 w-full rounded-2xl border p-3" value={companion} onChange={(e)=>setCompanion(e.target.value)}><option value="alone">혼자</option><option value="friend">친구</option><option value="couple">연인</option><option value="family">가족</option></select></label>
-    <section><h2 className="font-black">관심사 · 복수 선택</h2><div className="mt-2 flex flex-wrap gap-2">{INTERESTS.map(([value,label])=><button type="button" key={value} onClick={()=>toggle(value,selectedInterests,setSelectedInterests)} className={`rounded-full border px-4 py-2 text-sm font-bold ${selectedInterests.includes(value)?"bg-neutral-900 text-white":""}`}>{label}</button>)}</div></section>
+    <section><h2 className="font-black">관심사 · 복수 선택</h2><div className="mt-3 space-y-3">{INTEREST_GROUPS.map((group)=><div key={group.label}><p className="mb-2 text-xs font-black text-neutral-400">{group.label}</p><div className="flex flex-wrap gap-2">{group.items.map(([value,label])=><button type="button" key={value} onClick={()=>toggle(value,selectedInterests,setSelectedInterests)} className={`rounded-full border px-4 py-2 text-sm font-bold ${selectedInterests.includes(value)?"bg-neutral-900 text-white":""}`}>{label}</button>)}</div></div>)}</div></section>
     <section><h2 className="font-black">사용 OTT</h2><div className="mt-2 flex flex-wrap gap-2">{OTT.map(value=><button type="button" key={value} onClick={()=>toggle(value,ottServices,setOttServices)} className={`rounded-full border px-4 py-2 text-sm font-bold ${ottServices.includes(value)?"bg-neutral-900 text-white":""}`}>{value}</button>)}</div></section>
     <section><h2 className="font-black">좋아하는 스포츠팀</h2><div className="mt-2 flex gap-2"><input className="min-w-0 flex-1 rounded-2xl border p-3" value={teamInput} onChange={(e)=>setTeamInput(e.target.value)} placeholder="예: 롯데 자이언츠"/><button type="button" className="rounded-2xl bg-neutral-900 px-4 font-bold text-white" onClick={()=>{const v=teamInput.trim();if(v&&!favoriteTeams.includes(v))setFavoriteTeams([...favoriteTeams,v]);setTeamInput("");}}>추가</button></div><div className="mt-2 flex flex-wrap gap-2">{favoriteTeams.map(team=><button type="button" key={team} onClick={()=>setFavoriteTeams(favoriteTeams.filter(v=>v!==team))} className="rounded-full bg-neutral-100 px-3 py-2 text-sm">{team} ×</button>)}</div></section>
     <section><h2 className="font-black">실내 / 실외 선호</h2><div className="mt-2 grid grid-cols-3 gap-2">{[["indoor","실내"],["balanced","균형"],["outdoor","실외"]].map(([v,l])=><button key={v} type="button" onClick={()=>setActivityMode(v)} className={`rounded-2xl border p-3 font-bold ${activityMode===v?"bg-neutral-900 text-white":""}`}>{l}</button>)}</div></section>

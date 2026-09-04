@@ -6,13 +6,15 @@ import { getRegionLocation } from "@/lib/location/regionCoordinates";
 import { getWeather } from "@/lib/api/weather/getWeather";
 import { calculateDistanceKm } from "@/lib/location/calculateDistance";
 import { createClient } from "@/lib/supabase/server";
+import { sampleActivities } from "@/data/sampleActivities";
 
-const validCategories = new Set(TOUR_CATEGORIES.map((item) => item.id));
+const validCategories = new Set<string>([...TOUR_CATEGORIES.map((item) => item.id), "golf"]);
 
 export async function GET(request: NextRequest) {
   const region = request.nextUrl.searchParams.get("region")?.trim() || "부산";
   const categoryParam = request.nextUrl.searchParams.get("category") || "all";
-  const category = (validCategories.has(categoryParam as TourCategory) ? categoryParam : "all") as TourCategory;
+  const category = validCategories.has(categoryParam) ? categoryParam : "all";
+  const tourCategory = (category === "golf" ? "all" : category) as TourCategory;
   const center = getRegionLocation(region);
   let interests: string[] = [];
   let activityMode = "balanced";
@@ -27,12 +29,14 @@ export async function GET(request: NextRequest) {
   }
 
   const [tourItems, weather] = await Promise.all([
-    getTours(region, category, 24),
+    category === "golf" ? Promise.resolve([]) : getTours(region, tourCategory, 24),
     getWeather(region, center),
   ]);
 
-  const activities = tourItems
-    .map(tourToActivity)
+  const golfActivities = sampleActivities.filter((activity) =>
+    activity.interests.includes("golf") && activity.metadata?.region === region && (category === "all" || category === "golf")
+  );
+  const activities = [...tourItems.map(tourToActivity), ...golfActivities]
     .map((activity) => {
       const distanceKm = activity.coordinates ? calculateDistanceKm(center.latitude, center.longitude, activity.coordinates.latitude, activity.coordinates.longitude) : null;
       let score = 60;
