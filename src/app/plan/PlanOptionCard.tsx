@@ -3,10 +3,10 @@
 import { useMemo, useState, useTransition } from "react";
 import DailyPlanMap from "@/components/map/DailyPlanMap";
 import type { Activity } from "@/types/activity";
-import type { PlanOption, DailyPlan } from "@/types/plan";
+import type { PlanOption, DailyPlan, PlanItem } from "@/types/plan";
 import type { UserLocation } from "@/types/location";
 import SavePlanButton from "./SavePlanButton";
-import { timeToMinutes } from "@/lib/plan/timeUtils";
+import { minutesToTime, timeToMinutes } from "@/lib/plan/timeUtils";
 
 export default function PlanOptionCard({ option, candidates, region, budget, startLocation, preferredTransportMode = "car", selectedDraftIds = [] }: {
   option: PlanOption;
@@ -19,6 +19,8 @@ export default function PlanOptionCard({ option, candidates, region, budget, sta
 }) {
   const [plan, setPlan] = useState(option.plan);
   const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
+  const [addingOpen, setAddingOpen] = useState(false);
+  const [editMessage, setEditMessage] = useState("");
   const [pending, startTransition] = useTransition();
 
   const usedIds = useMemo(() => new Set(plan.items.map((item) => item.activity.id)), [plan.items]);
@@ -32,6 +34,42 @@ export default function PlanOptionCard({ option, candidates, region, budget, sta
     [selectedDraftIds, usedIds],
   );
   const failureById = useMemo(() => new Map((option.draftFailures ?? []).map((failure) => [failure.id, failure])), [option.draftFailures]);
+  const additionCandidates = useMemo(
+    () => candidates.filter((activity) => !usedIds.has(activity.id)).slice(0, 8),
+    [candidates, usedIds],
+  );
+
+  function provisionalPlan(items: PlanItem[]): DailyPlan {
+    return {
+      ...plan,
+      items,
+      totalCost: items.reduce((sum, item) => sum + item.activity.cost, 0),
+    };
+  }
+
+  async function recalculate(nextPlan: DailyPlan, expectedIds: string[]) {
+    try {
+      const response = await fetch("/api/plan/recalculate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: nextPlan, style: option.style, startLocation, preferredTransportMode, budget }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message ?? "일정을 다시 계산하지 못했습니다.");
+      const recalculated = data.plan as DailyPlan;
+      const recalculatedIds = new Set(recalculated.items.map((item) => item.activity.id));
+      if (recalculated.items.length !== expectedIds.length || expectedIds.some((id) => !recalculatedIds.has(id))) {
+        const reason = Array.isArray(data.draftFailures) ? data.draftFailures[0]?.reason : undefined;
+        throw new Error(reason ?? "변경 후 일부 활동을 배치할 수 없어 기존 일정을 유지했습니다.");
+      }
+      setPlan(recalculated);
+      setEditMessage("일정 시간·이동·예산·귀가정보를 다시 계산했습니다.");
+      return true;
+    } catch (error) {
+      setEditMessage(error instanceof Error ? error.message : "일정을 변경하지 못했습니다.");
+      return false;
+    }
+  }
 
   function replacementCandidates(index: number) {
     const current = plan.items[index];
@@ -47,27 +85,57 @@ export default function PlanOptionCard({ option, candidates, region, budget, sta
 
   function replaceActivity(index: number, activity: Activity) {
     startTransition(async () => {
+      setEditMessage("");
       const current = plan.items[index];
-      const provisional: DailyPlan = {
-        ...plan,
-        items: plan.items.map((item, itemIndex) => itemIndex === index ? {
+      const nextItems = plan.items.map((item, itemIndex) => itemIndex === index ? {
           ...item,
           activity,
-          fixedTime: false,
-          endTime: current.endTime,
-        } : item),
-        totalCost: plan.totalCost - current.activity.cost + activity.cost,
-      };
-      const response = await fetch("/api/plan/recalculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: provisional, style: option.style, startLocation, preferredTransportMode, budget }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setPlan(data.plan);
-      }
+          fixedTime: activity.fixedTime,
+          endTime: minutesToTime(timeToMinutes(current.startTime) + activity.durationMinutes),
+        } : item);
+      await recalculate(provisionalPlan(nextItems), nextItems.map((item) => item.activity.id));
       setReplacingIndex(null);
+    });
+  }
+
+  function deleteActivity(index: number) {
+    startTransition(async () => {
+      setEditMessage("");
+      const nextItems = plan.items.filter((_, itemIndex) => itemIndex !== index);
+      if (await recalculate(provisionalPlan(nextItems), nextItems.map((item) => item.activity.id))) setReplacingIndex(null);
+    });
+  }
+
+  function addActivity(activity: Activity) {
+    startTransition(async () => {
+      setEditMessage("");
+      const startTime = activity.fixedTime && activity.startAt ? activity.startAt : plan.startTime;
+      const addedItem: PlanItem = {
+        activity,
+        startTime,
+        endTime: minutesToTime(timeToMinutes(startTime) + activity.durationMinutes),
+        fixedTime: activity.fixedTime,
+      };
+      const nextItems = [...plan.items, addedItem];
+      if (await recalculate(provisionalPlan(nextItems), nextItems.map((item) => item.activity.id))) setAddingOpen(false);
+    });
+  }
+
+  function movableIndex(index: number, direction: -1 | 1) {
+    for (let target = index + direction; target >= 0 && target < plan.items.length; target += direction) {
+      if (!plan.items[target].fixedTime) return target;
+    }
+    return -1;
+  }
+
+  function moveActivity(index: number, direction: -1 | 1) {
+    const target = movableIndex(index, direction);
+    if (target < 0 || plan.items[index].fixedTime) return;
+    startTransition(async () => {
+      setEditMessage("");
+      const nextItems = [...plan.items];
+      [nextItems[index], nextItems[target]] = [nextItems[target], nextItems[index]];
+      await recalculate(provisionalPlan(nextItems), nextItems.map((item) => item.activity.id));
     });
   }
 
@@ -112,7 +180,11 @@ export default function PlanOptionCard({ option, candidates, region, budget, sta
               <div className="flex items-center justify-between gap-2"><strong>{item.startTime} ~ {item.endTime}</strong><span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold">{item.fixedTime ? "시간 고정" : "조정 가능"}</span></div>
               <p className="mt-1 font-black">{item.activity.title}</p>
               <p className="mt-1 text-xs text-neutral-500">{item.activity.location ?? "장소 미정"} · {item.activity.cost.toLocaleString()}원</p>
-              <button onClick={() => setReplacingIndex(replacingIndex === index ? null : index)} disabled={pending} className="mt-3 rounded-xl border px-3 py-2 text-xs font-black">이 활동 바꾸기</button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" onClick={() => setReplacingIndex(replacingIndex === index ? null : index)} disabled={pending} className="rounded-xl border px-3 py-2 text-xs font-black">교체</button>
+                <button type="button" onClick={() => deleteActivity(index)} disabled={pending} className="rounded-xl border border-rose-200 px-3 py-2 text-xs font-black text-rose-700">삭제</button>
+                {!item.fixedTime ? <><button type="button" onClick={() => moveActivity(index, -1)} disabled={pending || movableIndex(index, -1) < 0} className="rounded-xl border px-3 py-2 text-xs font-black disabled:opacity-30" aria-label={`${item.activity.title} 위로 이동`}>↑ 위로</button><button type="button" onClick={() => moveActivity(index, 1)} disabled={pending || movableIndex(index, 1) < 0} className="rounded-xl border px-3 py-2 text-xs font-black disabled:opacity-30" aria-label={`${item.activity.title} 아래로 이동`}>↓ 아래로</button></> : null}
+              </div>
               {replacingIndex === index && (
                 <div className="mt-3 grid gap-2">
                   {replacementCandidates(index).length ? replacementCandidates(index).map((candidate) => (
@@ -128,6 +200,13 @@ export default function PlanOptionCard({ option, candidates, region, budget, sta
         </div>
         <DailyPlanMap items={plan.items} startLocation={startLocation} />
       </div>
+
+      <section className="mt-6 rounded-2xl border border-dashed p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-black">활동 직접 추가</h3><p className="text-xs text-neutral-500">추가 후 전체 시간과 이동·귀가 가능성을 다시 검사합니다.</p></div><button type="button" onClick={() => setAddingOpen((current) => !current)} disabled={pending} className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-black text-white">{addingOpen ? "닫기" : "+ 활동 추가"}</button></div>
+        {addingOpen ? <div className="mt-4 grid gap-2 sm:grid-cols-2">{additionCandidates.length ? additionCandidates.map((candidate) => <button key={candidate.id} type="button" onClick={() => addActivity(candidate)} disabled={pending} className="rounded-xl bg-neutral-50 p-3 text-left text-sm"><strong className="block">{candidate.title}</strong><span className="text-xs text-neutral-500">{candidate.durationMinutes}분 · {candidate.cost.toLocaleString()}원 · {candidate.fixedTime ? "시간 고정" : "조정 가능"}</span></button>) : <p className="text-sm text-neutral-500">추가할 수 있는 새 후보가 없습니다.</p>}</div> : null}
+      </section>
+
+      {editMessage ? <p role="status" className={`mt-4 rounded-xl px-4 py-3 text-sm font-bold ${editMessage.includes("다시 계산했습니다") ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}>{editMessage}</p> : null}
 
       <div className="ml-auto mt-6 max-w-sm">
         <SavePlanButton input={{
