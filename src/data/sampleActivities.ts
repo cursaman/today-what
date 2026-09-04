@@ -89,6 +89,7 @@ export const sampleActivities: Activity[] = [
     coordinates: { latitude: 35.1578, longitude: 129.0592 },
     interests: ["cafe"],
     source: "sample",
+    metadata: { primaryCategory: "daily-life", secondaryCategory: "cafe", breakType: "cafe", preferredStart: "14:00", preferredEnd: "17:30", dataQuality: "estimated", contentTypeLabel: "카페 휴식" },
   },
   {
     id: "golf-field-busan",
@@ -132,7 +133,7 @@ export const sampleActivities: Activity[] = [
     location: "현재 동선 주변",
     interests: ["food"],
     source: "sample",
-    metadata: { primaryCategory: "daily-life", secondaryCategory: "meal", mealType: "lunch", preferredStart: "11:30", preferredEnd: "14:00", dataQuality: "estimated" },
+    metadata: { primaryCategory: "daily-life", secondaryCategory: "meal", mealType: "lunch", preferredStart: "11:30", preferredEnd: "14:00", dataQuality: "estimated", contentTypeLabel: "점심" },
   },
   {
     id: "meal-dinner",
@@ -146,6 +147,6 @@ export const sampleActivities: Activity[] = [
     location: "현재 동선 주변",
     interests: ["food"],
     source: "sample",
-    metadata: { primaryCategory: "daily-life", secondaryCategory: "meal", mealType: "dinner", preferredStart: "17:30", preferredEnd: "20:30", dataQuality: "estimated" },
+    metadata: { primaryCategory: "daily-life", secondaryCategory: "meal", mealType: "dinner", preferredStart: "17:30", preferredEnd: "20:30", dataQuality: "estimated", contentTypeLabel: "저녁" },
   },
 ];

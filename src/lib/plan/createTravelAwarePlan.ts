@@ -38,7 +38,12 @@ function activityGroup(activity: Activity) {
   if (activity.type === "ott" || activity.type === "movie") return "screen";
   if (activity.interests.includes("golf")) return "golf";
   if (typeof activity.metadata?.mealType === "string") return `meal-${activity.metadata.mealType}`;
+  if (activity.metadata?.breakType === "cafe") return "cafe";
   return activity.type;
+}
+
+function isMeal(activity: Activity) {
+  return typeof activity.metadata?.mealType === "string";
 }
 
 function scheduleWindow(activity: Activity) {
@@ -204,6 +209,15 @@ export async function createTravelAwarePlan(
   async function placeAutomatic(candidate: Activity) {
     if (!allowed(candidate)) return false;
     const group = activityGroup(candidate);
+    if (!isMeal(candidate)) {
+      const remainingMealCost = automaticAnchors.reduce((cost, meal) => {
+        const mealGroup = activityGroup(meal);
+        const window = scheduleWindow(meal);
+        const stillRelevant = window ? window.end > cursor : true;
+        return isMeal(meal) && stillRelevant && (groupCounts.get(mealGroup) ?? 0) === 0 ? cost + meal.cost : cost;
+      }, 0);
+      if (totalCost + candidate.cost + remainingMealCost > budget) return false;
+    }
     if (await tryPlace(candidate, false)) {
       automaticCount += 1;
       groupCounts.set(group, (groupCounts.get(group) ?? 0) + 1);

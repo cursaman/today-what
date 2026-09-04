@@ -18,6 +18,7 @@ export function scoreActivity(activity: Activity, condition: RecommendationCondi
   if(condition.companion==="couple" && (activity.interests.includes("cafe")||activity.interests.includes("movie")||activity.interests.includes("culture"))) score+=10;
   if(condition.companion==="friend" && (activity.interests.includes("sports")||activity.interests.includes("activity"))) score+=10;
   if(typeof activity.metadata?.mealType === "string") score+=35;
+  if(activity.metadata?.breakType === "cafe") score+=15;
   if(activity.cost>condition.budget) return -999;
   if(activity.fixedTime&&activity.startAt){const a=timeToMinutes(activity.startAt),s=timeToMinutes(condition.startTime),e=timeToMinutes(condition.endTime);if(a<s||a>e)return -999;score+=30;}
   const home=String(activity.metadata?.homeTeam??"").trim().toLocaleLowerCase("ko-KR");

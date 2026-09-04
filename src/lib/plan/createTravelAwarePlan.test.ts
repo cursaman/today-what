@@ -142,6 +142,29 @@ describe("createTravelAwarePlan", () => {
     expect(timeToMinutes(meal!.endTime)).toBeLessThanOrEqual(timeToMinutes("14:00"));
   });
 
+  it("점심·카페·저녁을 각각 알맞은 시간대에 배치한다", async () => {
+    const lunch = activity({ id: "lunch", title: "점심", cost: 12000, metadata: { mealType: "lunch", preferredStart: "11:30", preferredEnd: "14:00" } });
+    const cafe = activity({ id: "cafe", title: "카페", cost: 8000, metadata: { breakType: "cafe", preferredStart: "14:00", preferredEnd: "17:30" } });
+    const dinner = activity({ id: "dinner", title: "저녁", cost: 15000, metadata: { mealType: "dinner", preferredStart: "17:30", preferredEnd: "20:30" } });
+
+    const { plan } = await createTravelAwarePlan([cafe, dinner, lunch], "06:00", "23:00", 50000, "balanced", origin, "car");
+
+    expect(plan.items.map((item) => item.activity.id)).toEqual(["lunch", "cafe", "dinner"]);
+    expect(plan.items.map((item) => item.startTime)).toEqual(["11:30", "14:00", "17:30"]);
+    expect(plan.totalCost).toBe(35000);
+  });
+
+  it("예산이 빠듯하면 카페보다 남은 식사 예산을 먼저 확보한다", async () => {
+    const lunch = activity({ id: "budget-lunch", title: "점심", cost: 12000, metadata: { mealType: "lunch", preferredStart: "11:30", preferredEnd: "14:00" } });
+    const cafe = activity({ id: "budget-cafe", title: "카페", cost: 8000, metadata: { breakType: "cafe", preferredStart: "14:00", preferredEnd: "17:30" } });
+    const dinner = activity({ id: "budget-dinner", title: "저녁", cost: 15000, metadata: { mealType: "dinner", preferredStart: "17:30", preferredEnd: "20:30" } });
+
+    const { plan } = await createTravelAwarePlan([lunch, cafe, dinner], "06:00", "23:00", 30000, "balanced", origin, "car");
+
+    expect(plan.items.map((item) => item.activity.id)).toEqual(["budget-lunch", "budget-dinner"]);
+    expect(plan.totalCost).toBe(27000);
+  });
+
   it("자동 일정에는 필드와 스크린골프를 합쳐 한 개만 배치한다", async () => {
     const field = activity({ id: "field", title: "필드 골프", durationMinutes: 120, indoor: false, interests: ["golf"], score: 100 });
     const screen = activity({ id: "screen", title: "스크린골프", durationMinutes: 120, interests: ["golf"], score: 90 });
